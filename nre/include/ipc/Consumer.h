@@ -42,7 +42,8 @@ class Consumer {
     struct Interface {
         volatile size_t rpos;
         volatile size_t wpos;
-        T buffer[];
+        // has more elements, but clang does complain when using a flexible array of non-PODs
+        T buffer[1];
     };
 
 public:
