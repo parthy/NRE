@@ -173,6 +173,15 @@ char *strchr(const char *str, int ch) {
     return nullptr;
 }
 
+void *memchr(const void *s, int c, size_t n) {
+    uint8_t *m = (uint8_t*)s;
+    while(n-- > 0) {
+        if(*m++ == c)
+            return m - 1;
+    }
+    return nullptr;
+}
+
 char *strstr(const char *str1, const char *str2) {
     char *res = nullptr;
     char *sub;
