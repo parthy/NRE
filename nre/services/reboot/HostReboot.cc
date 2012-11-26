@@ -21,7 +21,7 @@
 
 using namespace nre;
 
-HostRebootKeyboard::HostRebootKeyboard() : HostRebootMethod(), _con("keyboard"), _sess(_con) {
+HostRebootKeyboard::HostRebootKeyboard() : HostRebootMethod(), _sess("keyboard") {
 }
 
 void HostRebootKeyboard::reboot() {
@@ -37,7 +37,7 @@ void HostRebootSysCtrlPortA::reboot() {
     _port.out<uint8_t>(0x01);
 }
 
-HostRebootPCIReset::HostRebootPCIReset() : HostRebootMethod(), _con("pcicfg"), _sess(_con) {
+HostRebootPCIReset::HostRebootPCIReset() : HostRebootMethod(), _sess("pcicfg") {
 }
 
 void HostRebootPCIReset::reboot() {
@@ -46,7 +46,7 @@ void HostRebootPCIReset::reboot() {
 }
 
 HostRebootACPI::HostRebootACPI()
-    : HostRebootMethod(), _method(), _value(), _addr(), _con("acpi"), _sess(_con), _ports(), _ds() {
+    : HostRebootMethod(), _method(), _value(), _addr(), _sess("acpi"), _ports(), _ds() {
     LOG(REBOOT, "Trying reboot via ACPI...\n");
     DataSpace table = _sess.find_table("FACP");
     ACPI::RSDT *rsdt = reinterpret_cast<ACPI::RSDT*>(table.virt());

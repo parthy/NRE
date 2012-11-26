@@ -23,7 +23,9 @@
 #include <kobj/UserSm.h>
 #include <kobj/Gsi.h>
 #include <kobj/Ports.h>
+#include <ipc/ClientSession.h>
 #include <subsystem/ChildMemory.h>
+#include <subsystem/ServiceRegistry.h>
 #include <collection/SList.h>
 #include <region/PortManager.h>
 #include <bits/BitField.h>
@@ -85,6 +87,36 @@ class Child : public RCUObject {
         nre::String _name;
         cpu_t _cpu;
         capsel_t _cap;
+    };
+
+    /**
+     * Stores the offset of the capability selectors for each session
+     */
+    class ServiceCaps : public SListItem {
+    public:
+        explicit ServiceCaps(const char *service, capsel_t cap, Pt *pt, bool free)
+            : SListItem(), _pt(pt), _free(free), _sess(new ClientSession(service, cap, *pt)), _cap(cap) {
+        }
+        ~ServiceCaps() {
+            if(_free)
+                delete _pt;
+        }
+
+        ClientSession *session() {
+            return _sess;
+        }
+        const BitField<Hip::MAX_CPUS> &available() const {
+            return _sess->available();
+        }
+        capsel_t caps() const {
+            return _sess->caps();
+        }
+
+    protected:
+        Pt *_pt;
+        bool _free;
+        ClientSession *_sess;
+        ObjCap _cap;
     };
 
 public:
@@ -182,12 +214,15 @@ public:
 
 private:
     explicit Child(ChildManager *cm, id_type id, const String &cmdline)
-        : RCUObject(), _cm(cm), _id(id), _cmdline(cmdline), _started(), _pd(), _ec(),
-          _pts(), _ptcount(), _regs(), _io(PortManager::USED), _scs(), _gsis(),
+        : RCUObject(), _cm(cm), _id(id), _cmdline(cmdline), _started(), _pd(), _ec(), _srvecs(),
+          _pts(), _ptcount(), _regs(), _io(PortManager::USED), _scs(), _gsis(), _sessions(),
           _gsi_caps(CapSelSpace::get().allocate(Hip::MAX_GSIS)), _gsi_next(), _entry(),
           _main(), _stack(), _utcb(), _hip(), _last_fault_addr(), _last_fault_cpu(), _sm() {
     }
     virtual ~Child() {
+        for(size_t i = 0; i < CPU::count(); ++i)
+            delete _srvecs[i];
+        delete[] _srvecs;
         for(size_t i = 0; i < _ptcount; ++i)
             delete _pts[i];
         delete[] _pts;
@@ -199,6 +234,7 @@ private:
         release_ports();
         release_scs();
         release_regs();
+        release_sessions();
         CapSelSpace::get().free(_gsi_caps, Hip::MAX_GSIS);
     }
 
@@ -221,6 +257,7 @@ private:
     void release_ports();
     void release_scs();
     void release_regs();
+    void release_sessions();
 
     Child(const Child&);
     Child& operator=(const Child&);
@@ -231,12 +268,14 @@ private:
     bool _started;
     Pd *_pd;
     GlobalThread *_ec;
+    LocalThread **_srvecs;
     Pt **_pts;
     size_t _ptcount;
     ChildMemory _regs;
     PortManager _io;
     SList<SchedEntity> _scs;
     BitField<Hip::MAX_GSIS> _gsis;
+    SList<ServiceCaps> _sessions;
     capsel_t _gsi_caps;
     capsel_t _gsi_next;
     uintptr_t _entry;

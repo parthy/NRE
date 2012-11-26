@@ -191,8 +191,7 @@ HostHPET::HostHPET(bool force_legacy)
  * different RID.
  */
 uint16_t HostHPET::get_rid(uint8_t block, uint comparator) {
-    Connection con("acpi");
-    ACPISession sess(con);
+    ACPISession sess("acpi");
     try {
         DataSpace table = sess.find_table("DMAR");
         DmarTableParser p(reinterpret_cast<char*>(table.virt()));
@@ -238,8 +237,7 @@ uint16_t HostHPET::get_rid(uint8_t block, uint comparator) {
 }
 
 uintptr_t HostHPET::get_address() {
-    Connection con("acpi");
-    ACPISession sess(con);
+    ACPISession sess("acpi");
     DataSpace table = sess.find_table("HPET");
     struct HpetAcpiTable {
         char res[40];

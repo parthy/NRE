@@ -17,7 +17,6 @@
 #pragma once
 
 #include <arch/Types.h>
-#include <ipc/Connection.h>
 #include <ipc/ClientSession.h>
 #include <ipc/Consumer.h>
 #include <mem/DataSpace.h>
@@ -51,12 +50,12 @@ class MouseSession : public ClientSession {
 
 public:
     /**
-     * Creates a new session with given connection
+     * Creates a new session at given service
      *
-     * @param con the connection
+     * @param service the service name
      */
-    explicit MouseSession(Connection &con)
-        : ClientSession(con),
+    explicit MouseSession(const char *service)
+        : ClientSession(service),
           _ds(DS_SIZE, DataSpaceDesc::ANONYMOUS, DataSpaceDesc::RW), _sm(0), _consumer(_ds, _sm, true) {
         share();
     }

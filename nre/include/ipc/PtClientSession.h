@@ -29,11 +29,11 @@ public:
     /**
      * Creates the session and creates portal-instances on all CPUs the service is available
      *
-     * @param con the connection
+     * @param service the service name
      */
-    explicit PtClientSession(Connection &con) : ClientSession(con), _pts(new Pt *[CPU::count()]) {
+    explicit PtClientSession(const char *service) : ClientSession(service), _pts(new Pt *[CPU::count()]) {
         for(cpu_t cpu = 0; cpu < CPU::count(); ++cpu)
-            _pts[cpu] = con.available_on(cpu) ? new Pt(caps() + cpu) : nullptr;
+            _pts[cpu] = available_on(cpu) ? new Pt(caps() + cpu) : nullptr;
     }
     /**
      * Destroys this session

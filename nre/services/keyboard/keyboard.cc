@@ -194,8 +194,7 @@ int main(int argc, char *argv[]) {
 
     // determine GSIs for keyboard and mouse
     {
-        Connection acpicon("acpi");
-        ACPISession acpi(acpicon);
+        ACPISession acpi("acpi");
         kbgsi = acpi.irq_to_gsi(KEYBOARD_IRQ);
         msgsi = acpi.irq_to_gsi(MOUSE_IRQ);
     }

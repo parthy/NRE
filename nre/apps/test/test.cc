@@ -19,7 +19,6 @@
 #include <kobj/Sc.h>
 #include <kobj/Sm.h>
 #include <kobj/Gsi.h>
-#include <ipc/Connection.h>
 #include <ipc/ClientSession.h>
 #include <ipc/Consumer.h>
 #include <stream/OStringStream.h>
@@ -36,8 +35,6 @@
 #include <Exception.h>
 
 using namespace nre;
-
-static Connection *con;
 
 #if 0
 static void read(void *) {
@@ -100,8 +97,6 @@ static void writer(void*) {
 }
 #endif
 
-static Connection *conscon;
-static Connection *timercon;
 static TimerSession *timer;
 static UserSm sm;
 static Sm done(0);
@@ -110,8 +105,8 @@ static void view0(void*) {
     char title[64];
     size_t subcon = Thread::current()->get_tls<word_t>(Thread::TLS_PARAM);
     OStringStream(title, sizeof(title)) << "Test-" << subcon;
-    ConsoleSession conssess(*conscon, subcon, title);
-    ConsoleStream view(conssess, 0);
+    ConsoleSession *conssess = new ConsoleSession("console", subcon, title);
+    ConsoleStream view(*conssess, 0);
     int i = 0;
     while(i < 10000) {
         //char c = view.read();
@@ -182,12 +177,10 @@ int main() {
     UtcbExcFrameRef euf;
     ser << euf;
 
-    timercon = new Connection("timer");
-    timer = new TimerSession(*timercon);
-    tick_thread(nullptr);
+    timer = new TimerSession("timer");
+    //tick_thread(nullptr);
 
-#if 0
-    conscon = new Connection("console");
+#if 1
     for(CPU::iterator it = CPU::begin(); it != CPU::end(); ++it) {
         GlobalThread *gt = GlobalThread::create(view0, it->log_id(), "test-thread");
         gt->set_tls<size_t>(Thread::TLS_PARAM, 1 + it->log_id());

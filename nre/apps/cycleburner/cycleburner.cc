@@ -297,10 +297,8 @@ public:
 };
 
 int main() {
-    Connection timercon("timer");
-    TimerSession timer(timercon);
-    Connection conscon("console");
-    ConsoleSession console(conscon, 1, "CycleBurner");
+    TimerSession timer("timer");
+    ConsoleSession console("console", 1, "CycleBurner");
 
     gen_sinlut();
     gen_sqrtlut();

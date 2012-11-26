@@ -33,8 +33,7 @@ using namespace nre;
 static const uint CUR_ROW_COLOR = 0x70;
 
 static size_t vmidx = 0;
-static Connection conscon("console");
-static ConsoleSession cons(conscon, 0, "VMManager");
+static ConsoleSession cons("console", 0, "VMManager");
 static SList<VMConfig> configs;
 static ChildManager cm;
 static Cycler<CPU::iterator> cpucyc(CPU::begin(), CPU::end());
@@ -147,8 +146,7 @@ static void input_thread(void*) {
 }
 
 static void refresh_thread(void*) {
-    Connection timercon("timer");
-    TimerSession timer(timercon);
+    TimerSession timer("timer");
     Clock clock(1000);
     while(1) {
         timevalue_t next = clock.source_time(1000);

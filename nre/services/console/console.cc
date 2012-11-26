@@ -25,8 +25,7 @@ using namespace nre;
 static ConsoleService *srv;
 
 static void input_thread(void*) {
-    Connection con("keyboard");
-    KeyboardSession kb(con);
+    KeyboardSession kb("keyboard");
     for(Keyboard::Packet *pk; (pk = kb.consumer().get()) != 0; kb.consumer().next()) {
         if(!srv->handle_keyevent(*pk)) {
             ScopedLock<RCULock> guard(&RCU::lock());

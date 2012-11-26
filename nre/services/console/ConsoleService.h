@@ -17,7 +17,6 @@
 #pragma once
 
 #include <ipc/Service.h>
-#include <ipc/Connection.h>
 #include <services/Keyboard.h>
 #include <services/Reboot.h>
 #include <collection/Cycler.h>
@@ -63,7 +62,6 @@ private:
     void create_dummy(uint page, const nre::String &title);
     void switch_to(size_t console);
 
-    nre::Connection _rbcon;
     nre::RebootSession _reboot;
     Screen *_screen;
     size_t _console;

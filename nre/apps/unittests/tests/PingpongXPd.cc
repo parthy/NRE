@@ -15,7 +15,6 @@
  */
 
 #include <ipc/Service.h>
-#include <ipc/Connection.h>
 #include <ipc/ClientSession.h>
 #include <subsystem/ChildManager.h>
 #include <stream/IStringStream.h>
@@ -110,8 +109,7 @@ static void client_data(AvgProfiler &prof, Pt &pt, UtcbFrame &uf, uint &sum) {
 }
 
 static int pingpong_client(int, char *argv[]) {
-    Connection con("pingpong");
-    ClientSession sess(con);
+    ClientSession sess("pingpong");
     Pt pt(sess.caps() + CPU::current().log_id());
     uintptr_t addr = IStringStream::read_from<uintptr_t>(argv[1]);
     client_func func = reinterpret_cast<client_func>(addr);

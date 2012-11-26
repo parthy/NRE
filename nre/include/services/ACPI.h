@@ -17,7 +17,6 @@
 #pragma once
 
 #include <arch/Types.h>
-#include <ipc/Connection.h>
 #include <ipc/PtClientSession.h>
 #include <services/PCIConfig.h>
 #include <mem/DataSpace.h>
@@ -66,11 +65,11 @@ private:
 class ACPISession : public PtClientSession {
 public:
     /**
-     * Creates a new session with given connection
+     * Creates a new session at given service
      *
-     * @param con the connection
+     * @param service the service name
      */
-    explicit ACPISession(Connection &con) : PtClientSession(con) {
+    explicit ACPISession(const char *service) : PtClientSession(service) {
     }
 
     /**

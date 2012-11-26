@@ -20,7 +20,6 @@
 #include <ipc/Service.h>
 #include <ipc/Consumer.h>
 #include <ipc/Producer.h>
-#include <ipc/Connection.h>
 #include <ipc/ClientSession.h>
 #include <stream/IStringStream.h>
 #include <Hip.h>
@@ -148,8 +147,7 @@ static int shm_service(int argc, char *argv[]) {
 
 static int shm_client(int, char *argv[]) {
     size_t ds_size = IStringStream::read_from<size_t>(argv[1]);
-    Connection con("shm");
-    ClientSession sess(con);
+    ClientSession sess("shm");
     DataSpace ds(ds_size, DataSpaceDesc::ANONYMOUS, DataSpaceDesc::RW);
     Sm sm(0);
     Producer<Item> prod(ds, sm, true);

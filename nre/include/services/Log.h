@@ -17,7 +17,6 @@
 #pragma once
 
 #include <ipc/PtClientSession.h>
-#include <ipc/Connection.h>
 #include <utcb/UtcbFrame.h>
 #include <kobj/Pt.h>
 
@@ -29,11 +28,11 @@ namespace nre {
 class LogSession : public PtClientSession {
 public:
     /**
-     * Creates a new session with given connection
+     * Creates a new session at given service
      *
-     * @param con the connection
+     * @param service the service name
      */
-    explicit LogSession(Connection &con) : PtClientSession(con) {
+    explicit LogSession(const char *service) : PtClientSession(service) {
     }
 
     /**

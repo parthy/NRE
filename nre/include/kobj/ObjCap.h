@@ -36,6 +36,7 @@ protected:
         KEEP_BITS       = KEEP_SEL_BIT | KEEP_CAP_BIT
     };
 
+public:
     /**
      * Constructor for a new capability with given selector. Does not actually create the cap. This
      * will be done in subclasses.
@@ -47,7 +48,6 @@ protected:
     explicit ObjCap(capsel_t sel = INVALID, uint flags = 0) : _sel(sel | flags) {
     }
 
-public:
     /**
      * Destructor. Depending on the flags, it frees the selector and/or the capability (revoke).
      */

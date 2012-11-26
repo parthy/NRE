@@ -28,7 +28,6 @@ namespace nre {
 // that is, we lack debugging support in every header that we include since we can't include this
 // header there.
 
-class Connection;
 class LogSession;
 
 /**
@@ -72,7 +71,6 @@ private:
 
     virtual void write(char c);
 
-    Connection *_con;
     LogSession *_sess;
     size_t _bufpos;
     char _buf[MAX_LINE_LEN + 1];

@@ -69,7 +69,8 @@ public:
      */
     enum Command {
         REGISTER,
-        GET,
+        OPEN_SESSION,
+        CLOSE_SESSION,
         UNREGISTER,
         CLIENT_DIED
     };

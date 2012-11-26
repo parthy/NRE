@@ -21,6 +21,7 @@
 #include <ipc/Service.h>
 #include <subsystem/ServiceRegistry.h>
 #include <subsystem/ChildConfig.h>
+#include <subsystem/Child.h>
 #include <mem/DataSpaceManager.h>
 #include <util/Sync.h>
 #include <Exception.h>
@@ -223,14 +224,8 @@ private:
     const ServiceRegistry::Service *get_service(const String &name) {
         ScopedLock<UserSm> guard(&_sm);
         const ServiceRegistry::Service* s = registry().find(name);
-        if(!s) {
-            if(!_startup_info.child)
-                VTHROW(ChildException, E_NOT_FOUND, "Unable to find service '" << name << "'");
-            BitField<Hip::MAX_CPUS> available;
-            capsel_t pts = get_parent_service(name.str(), available);
-            s = _registry.reg(0, name, pts, 1 << CPU::order(), available);
-            _regsm.up();
-        }
+        if(!s && !_startup_info.child)
+            VTHROW(ChildException, E_NOT_FOUND, "Unable to find service '" << name << "'");
         return s;
     }
     capsel_t reg_service(Child *c, capsel_t pts, const String& name,
@@ -240,6 +235,9 @@ private:
         _regsm.up();
         return srv->sm().sel();
     }
+    Child::ServiceCaps *open_session(Child *c, capsel_t cap, const String &name,
+                                     const ServiceRegistry::Service *service);
+    void close_session(Child *c, capsel_t portals);
     void unreg_service(Child *c, const String& name) {
         ScopedLock<UserSm> guard(&_sm);
         _registry.unreg(c, name);
@@ -262,7 +260,7 @@ private:
     static void prepare_stack(Child *c, uintptr_t &sp, uintptr_t csp);
     void build_hip(Child *c, const ChildConfig &config);
 
-    capsel_t get_parent_service(const char *name, BitField<Hip::MAX_CPUS> &available);
+    capsel_t open_session_at_parent(const String &name, BitField<Hip::MAX_CPUS> &available);
     void map(UtcbFrameRef &uf, Child *c, DataSpace::RequestType type);
     void switch_to(UtcbFrameRef &uf, Child *c);
     void unmap(UtcbFrameRef &uf, Child *c);
@@ -280,9 +278,7 @@ private:
     mutable UserSm _slotsm;
     Sm _regsm;
     Sm _diesm;
-    // we need different Ecs to be able to receive a different number of caps
     LocalThread **_ecs;
-    LocalThread **_regecs;
 };
 
 }

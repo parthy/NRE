@@ -26,11 +26,8 @@
 
 using namespace nre;
 
-static Connection timercon("timer");
-static Connection sysinfocon("sysinfo");
-static SysInfoSession sysinfo(sysinfocon);
-static Connection conscon("console");
-static ConsoleSession cons(conscon, 0, "SysInfo");
+static SysInfoSession sysinfo("sysinfo");
+static ConsoleSession cons("console", 0, "SysInfo");
 static size_t page = 0;
 static SysInfoPage *pages[] = {
     new ScInfoPage(cons, sysinfo),
@@ -89,7 +86,7 @@ static void input_thread(void*) {
 }
 
 static void refresh_thread() {
-    TimerSession timer(timercon);
+    TimerSession timer("timer");
     Clock clock(1000);
     while(1) {
         timevalue_t next = clock.source_time(1000);

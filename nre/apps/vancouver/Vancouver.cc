@@ -311,10 +311,10 @@ bool Vancouver::receive(MessageDisk &msg) {
         return false;
     switch(msg.type) {
         case MessageDisk::DISK_CONNECT:
+            // storage is optional
             try {
                 if(!_stdevs[msg.disknr])
-                    _stdevs[msg.disknr] = new StorageDevice(_mb.bus_diskcommit, *guest_mem, *_stcon,
-                                                            msg.disknr);
+                    _stdevs[msg.disknr] = new StorageDevice(_mb.bus_diskcommit, *guest_mem, msg.disknr);
                 _stdevs[msg.disknr]->get_params(msg.params);
                 msg.error = MessageDisk::DISK_OK;
             }

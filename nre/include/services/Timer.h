@@ -17,7 +17,6 @@
 #pragma once
 
 #include <arch/Types.h>
-#include <ipc/Connection.h>
 #include <ipc/PtClientSession.h>
 #include <utcb/UtcbFrame.h>
 #include <Exception.h>
@@ -51,11 +50,11 @@ private:
 class TimerSession : public PtClientSession {
 public:
     /**
-     * Creates a new session with given connection
+     * Creates a new session at given service
      *
-     * @param con the connection
+     * @param service the service name
      */
-    explicit TimerSession(Connection &con) : PtClientSession(con) {
+    explicit TimerSession(const char *service) : PtClientSession(service) {
         get_sms();
     }
     /**

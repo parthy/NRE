@@ -14,7 +14,6 @@
  * General Public License version 2 for more details.
  */
 
-#include <ipc/Connection.h>
 #include <stream/OStringStream.h>
 #include <services/Timer.h>
 #include <util/Clock.h>
@@ -50,8 +49,7 @@ void ViewSwitcher::switch_to(ConsoleSessionData *from, ConsoleSessionData *to) {
 void ViewSwitcher::switch_thread(void*) {
     ViewSwitcher *vs = Thread::current()->get_tls<ViewSwitcher*>(Thread::TLS_PARAM);
     Clock clock(1000);
-    Connection con("timer");
-    TimerSession timer(con);
+    TimerSession timer("timer");
     timevalue_t until = 0;
     size_t sessid = 0;
     bool tag_done = false;

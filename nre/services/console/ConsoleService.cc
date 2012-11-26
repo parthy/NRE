@@ -21,7 +21,7 @@
 using namespace nre;
 
 ConsoleService::ConsoleService(const char *name, uint modifier)
-    : Service(name, CPUSet(CPUSet::ALL), ConsoleSessionData::portal), _rbcon("reboot"), _reboot(_rbcon),
+    : Service(name, CPUSet(CPUSet::ALL), ConsoleSessionData::portal), _reboot("reboot"),
       _screen(new HostVGA()), _cons(), _concyc(), _switcher(this), _modifier(modifier) {
     // we want to accept two dataspaces
     for(auto it = CPU::begin(); it != CPU::end(); ++it) {

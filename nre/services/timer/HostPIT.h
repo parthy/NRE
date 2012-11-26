@@ -43,8 +43,7 @@ class HostPIT : public HostTimerDevice {
 
     private:
         static uint irq_to_gsi(uint irq) {
-            nre::Connection acpicon("acpi");
-            nre::ACPISession acpi(acpicon);
+            nre::ACPISession acpi("acpi");
             return acpi.irq_to_gsi(irq);
         }
 

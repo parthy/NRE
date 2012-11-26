@@ -25,9 +25,8 @@
 
 class StorageDevice {
 public:
-    explicit StorageDevice(DBus<MessageDiskCommit> &bus, nre::DataSpace &guestmem,
-                           nre::Connection &con, size_t no)
-        : _no(no), _bus(bus), _con(con), _sess(_con, guestmem, no) {
+    explicit StorageDevice(DBus<MessageDiskCommit> &bus, nre::DataSpace &guestmem, size_t no)
+        : _no(no), _bus(bus), _sess("storage", guestmem, no) {
         char buffer[32];
         nre::OStringStream os(buffer, sizeof(buffer));
         os << "vmm-storage-" << no;
@@ -69,6 +68,5 @@ private:
 
     size_t _no;
     DBus<MessageDiskCommit> &_bus;
-    nre::Connection &_con;
     nre::StorageSession _sess;
 };

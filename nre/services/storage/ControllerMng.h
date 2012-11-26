@@ -32,8 +32,7 @@ class ControllerMng {
 
 public:
     explicit ControllerMng(bool idedma)
-        : _idedma(idedma), _pcicfgcon("pcicfg"), _pcicfg(_pcicfgcon), _acpicon("acpi"),
-          _acpi(_acpicon), _pci(_pcicfg, &_acpi), _count(0), _ctrls() {
+        : _idedma(idedma), _pcicfg("pcicfg"), _acpi("acpi"), _pci(_pcicfg, &_acpi), _count(0), _ctrls() {
         find_ahci_controller();
         find_ide_controller();
     }
@@ -50,9 +49,7 @@ private:
     void find_ide_controller();
 
     bool _idedma;
-    nre::Connection _pcicfgcon;
     nre::PCIConfigSession _pcicfg;
-    nre::Connection _acpicon;
     nre::ACPISession _acpi;
     nre::PCI _pci;
     size_t _count;

@@ -33,6 +33,7 @@ ServiceSession *Service::new_session(capsel_t cap) {
 
 void Service::check_sessions() {
     capsel_t sid;
+    LOG(SERVICES, name() << ": Checking sessions\n");
     do {
         // find a session that should be destroyed
         sid = ObjCap::INVALID;

@@ -48,12 +48,12 @@ class VMManagerSession : public ClientSession {
 
 public:
     /**
-     * Creates a new session with given connection
+     * Creates a new session at given service
      *
-     * @param con the connection
+     * @param service the service name
      */
-    explicit VMManagerSession(Connection &con)
-        : ClientSession(con), _ds(DS_SIZE, DataSpaceDesc::ANONYMOUS, DataSpaceDesc::RW), _sm(0),
+    explicit VMManagerSession(const char *service)
+        : ClientSession(service), _ds(DS_SIZE, DataSpaceDesc::ANONYMOUS, DataSpaceDesc::RW), _sm(0),
           _consumer(_ds, _sm, true) {
         create();
     }

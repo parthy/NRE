@@ -15,7 +15,6 @@
  */
 
 #include <stream/Serial.h>
-#include <ipc/Connection.h>
 #include <mem/DataSpace.h>
 #include <kobj/Ports.h>
 #include <services/Log.h>
@@ -33,12 +32,11 @@ Serial::Init::Init() {
 }
 
 Serial::Serial()
-    : BaseSerial(), _con(new Connection("log")), _sess(new LogSession(*_con)), _bufpos(0), _buf() {
+    : BaseSerial(), _sess(new LogSession("log")), _bufpos(0), _buf() {
 }
 
 Serial::~Serial() {
     delete _sess;
-    delete _con;
 }
 
 void Serial::write(char c) {

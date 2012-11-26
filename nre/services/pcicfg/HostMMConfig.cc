@@ -24,8 +24,7 @@
 using namespace nre;
 
 HostMMConfig::HostMMConfig() {
-    Connection con("acpi");
-    ACPISession sess(con);
+    ACPISession sess("acpi");
     DataSpace table = sess.find_table("MCFG");
     AcpiMCFG *mcfg = reinterpret_cast<AcpiMCFG*>(table.virt());
     size_t count = (mcfg->len - sizeof(AcpiMCFG)) / sizeof(AcpiMCFG::Entry);

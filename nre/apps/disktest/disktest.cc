@@ -14,7 +14,6 @@
  * General Public License version 2 for more details.
  */
 
-#include <ipc/Connection.h>
 #include <services/Console.h>
 #include <services/Storage.h>
 #include <stream/ConsoleStream.h>
@@ -105,9 +104,9 @@ static void read_invalid_sector(StorageSession &disk, Storage::Parameter &params
     }
 }
 
-static void runtest(Connection &storagecon, DataSpace &buffer, size_t d) {
+static void runtest(DataSpace &buffer, size_t d) {
     try {
-        StorageSession disk(storagecon, buffer, d);
+        StorageSession disk("storage", buffer, d);
         Storage::Parameter params = disk.get_params();
         Serial::get() << "Connected to disk '" << params.name << "' (";
         Serial::get() << Bytes(params.sectors * params.sector_size) << " in ";
@@ -130,8 +129,7 @@ static void runtest(Connection &storagecon, DataSpace &buffer, size_t d) {
 }
 
 int main() {
-    Connection conscon("console");
-    ConsoleSession cons(conscon, 1, "DiskTest");
+    ConsoleSession cons("console", 1, "DiskTest");
     ConsoleStream s(cons, 0);
     cons.clear(0);
     s << "Welcome to the disk test program!\n\n";
@@ -144,9 +142,8 @@ int main() {
         return 0;
     }
 
-    Connection storagecon("storage");
     DataSpace buffer(0x1000, DataSpaceDesc::ANONYMOUS, DataSpaceDesc::RW);
     for(size_t d = 0; d < Storage::MAX_CONTROLLER * Storage::MAX_DRIVES; ++d)
-        runtest(storagecon, buffer, d);
+        runtest(buffer, d);
     return 0;
 }

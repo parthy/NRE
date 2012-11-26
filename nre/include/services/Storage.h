@@ -17,7 +17,6 @@
 #pragma once
 
 #include <arch/Types.h>
-#include <ipc/Connection.h>
 #include <ipc/PtClientSession.h>
 #include <ipc/Consumer.h>
 #include <utcb/UtcbFrame.h>
@@ -90,14 +89,14 @@ class StorageSession : public PtClientSession {
 
 public:
     /**
-     * Creates a new session with given connection
+     * Creates a new session at given service
      *
-     * @param con the connection
+     * @param service the service name
      * @param ds the dataspace to use for data exchange
      * @param drive the drive
      */
-    explicit StorageSession(Connection &con, DataSpace &ds, size_t drive)
-        : PtClientSession(con),
+    explicit StorageSession(const char *service, DataSpace &ds, size_t drive)
+        : PtClientSession(service),
           _ctrlds(ExecEnv::PAGE_SIZE, DataSpaceDesc::ANONYMOUS, DataSpaceDesc::RW), _sm(0),
           _cons(_ctrlds, _sm, true) {
         init(ds, drive);

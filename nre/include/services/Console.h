@@ -19,7 +19,6 @@
 #include <arch/Types.h>
 #include <kobj/Pt.h>
 #include <ipc/ClientSession.h>
-#include <ipc/Connection.h>
 #include <services/Keyboard.h>
 #include <Hip.h>
 
@@ -82,15 +81,15 @@ class ConsoleSession : public ClientSession {
 
 public:
     /**
-     * Creates a new session with given connection. That is, it creates a new subconsole attached
+     * Creates a new session at given service. That is, it creates a new subconsole attached
      * to the given console.
      *
-     * @param con the connection
+     * @param service the service name
      * @param console the console to attach to
      * @param title the subconsole title
      */
-    explicit ConsoleSession(Connection &con, size_t console, const String &title)
-        : ClientSession(con), _in_ds(IN_DS_SIZE, DataSpaceDesc::ANONYMOUS, DataSpaceDesc::RW),
+    explicit ConsoleSession(const char *service, size_t console, const String &title)
+        : ClientSession(service), _in_ds(IN_DS_SIZE, DataSpaceDesc::ANONYMOUS, DataSpaceDesc::RW),
           _out_ds(OUT_DS_SIZE, DataSpaceDesc::ANONYMOUS, DataSpaceDesc::RW), _sm(0),
           _consumer(_in_ds, _sm, true) {
         create(console, title);

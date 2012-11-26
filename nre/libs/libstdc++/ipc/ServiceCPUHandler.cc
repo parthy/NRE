@@ -38,28 +38,34 @@ void ServiceCPUHandler::portal(capsel_t) {
     UtcbFrameRef uf;
     Service *s = Thread::current()->get_tls<Service*>(Thread::TLS_PARAM);
     try {
-        ClientSession::Command cmd;
-        uf >> cmd;
+        Service::Command cmd;
+        String name;
+        uf >> cmd >> name;
         switch(cmd) {
-            case ClientSession::OPEN: {
+            case Service::OPEN_SESSION: {
                 capsel_t cap = uf.get_delegated(0).offset();
                 uf.finish_input();
 
                 ServiceSession *sess = s->new_session(cap);
                 uf.delegate(CapRange(sess->portal_caps(), 1 << CPU::order(), Crd::OBJ_ALL));
                 uf.accept_delegates();
+                uf << E_SUCCESS << s->available();
             }
             break;
 
-            case ClientSession::CLOSE: {
+            case Service::CLOSE_SESSION: {
                 capsel_t sid = uf.get_translated().offset();
                 uf.finish_input();
 
                 s->destroy_session(sid);
+                uf << E_SUCCESS;
             }
             break;
+
+            default:
+                VTHROW(Exception, E_ARGS_INVALID, "Unsupported command: " << cmd);
+                break;
         }
-        uf << E_SUCCESS;
     }
     catch(const Exception& e) {
         Syscalls::revoke(uf.delegation_window(), true);

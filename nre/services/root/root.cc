@@ -308,7 +308,8 @@ static void portal_service(capsel_t) {
             }
             break;
 
-            case Service::GET:
+            case Service::OPEN_SESSION:
+            case Service::CLOSE_SESSION:
             case Service::UNREGISTER:
             case Service::CLIENT_DIED:
                 uf.clear();

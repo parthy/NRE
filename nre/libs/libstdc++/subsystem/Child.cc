@@ -65,6 +65,13 @@ void Child::release_regs() {
     }
 }
 
+void Child::release_sessions() {
+    for(auto it = _sessions.begin(); it != _sessions.end(); ) {
+        auto old = it++;
+        delete &*old;
+    }
+}
+
 OStream & operator<<(OStream &os, const Child &c) {
     os << "Child[cmdline='" << c.cmdline() << "' cpu=" << c._ec->cpu();
     os << " entry=" << fmt(reinterpret_cast<void*>(c.entry())) << "]:\n";

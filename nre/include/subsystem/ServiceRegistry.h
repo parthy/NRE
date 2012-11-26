@@ -16,10 +16,13 @@
 
 #pragma once
 
-#include <subsystem/Child.h>
 #include <bits/BitField.h>
 #include <collection/SList.h>
+#include <cap/CapRange.h>
+#include <kobj/Sm.h>
 #include <Exception.h>
+#include <Desc.h>
+#include <Hip.h>
 
 namespace nre {
 
@@ -29,6 +32,8 @@ public:
         : Exception(code, msg) {
     }
 };
+
+class Child;
 
 /**
  * Keeps track of registered services, i.e. stores the child that registered it, the name, on
@@ -157,13 +162,7 @@ public:
      * @throws ServiceRegistryException if the service does already exist
      */
     const Service* reg(Child *child, const String &name, capsel_t pts, size_t count,
-                       const BitField<Hip::MAX_CPUS> &available) {
-        if(search(name))
-            VTHROW(ServiceRegistryException, E_EXISTS, "Service '" << name << "' does already exist");
-        Service *s = new Service(child, name, pts, count, available);
-        _srvs.append(s);
-        return s;
-    }
+                       const BitField<Hip::MAX_CPUS> &available);
     /**
      * Unregisters the service with given name from given child. Note that only the created can
      * unregister it.
@@ -172,17 +171,7 @@ public:
      * @param name the name of the service
      * @throws ServiceRegistryException if the service doesn't exist or doesn't belong to <child>
      */
-    void unreg(Child *child, const String &name) {
-        Service *s = search(name);
-        if(!s)
-            VTHROW(ServiceRegistryException, E_NOT_FOUND, "Service '" << name << "' does not exist");
-        if(s->child() != child) {
-            VTHROW(ServiceRegistryException, E_NOT_FOUND,
-                   "Child '" << child->cmdline() << "' does not own service '" << name << "'");
-        }
-        _srvs.remove(s);
-        delete s;
-    }
+    void unreg(Child *child, const String &name);
 
     /**
      * @param name the service name

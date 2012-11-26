@@ -16,7 +16,6 @@
 
 #pragma once
 
-#include <ipc/Connection.h>
 #include <services/Keyboard.h>
 #include <services/ACPI.h>
 #include <services/PCIConfig.h>
@@ -31,7 +30,6 @@ public:
     virtual void reboot();
 
 private:
-    nre::Connection _con;
     nre::KeyboardSession _sess;
 };
 
@@ -50,7 +48,6 @@ public:
     virtual void reboot();
 
 private:
-    nre::Connection _con;
     nre::PCIConfigSession _sess;
 };
 
@@ -64,7 +61,6 @@ private:
     uint8_t _method;
     uint8_t _value;
     uint64_t _addr;
-    nre::Connection _con;
     nre::ACPISession _sess;
     nre::Ports *_ports;
     nre::DataSpace *_ds;

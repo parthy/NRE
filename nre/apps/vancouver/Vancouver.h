@@ -33,15 +33,8 @@ extern nre::UserSm globalsm;
 class Vancouver : public StaticReceiver<Vancouver> {
 public:
     explicit Vancouver(const char *args, size_t console, const nre::String &constitle)
-        : _mb(), _timeouts(_mb), _conscon("console"), _conssess(_conscon, console, constitle),
-          _stcon(), _vmmngcon(), _vmmng(), _vcpus(), _stdevs() {
-        // storage is optional
-        try {
-            _stcon = new nre::Connection("storage");
-        }
-        catch(const nre::Exception &e) {
-            nre::Serial::get() << "Unable to connect to storage: " << e.msg() << "\n";
-        }
+        : _mb(), _timeouts(_mb), _conssess("console", console, constitle), _vmmng(), _vcpus(),
+          _stdevs() {
         create_devices(args);
         create_vcpus();
 
@@ -52,8 +45,7 @@ public:
 
         // vmmanager is optional
         try {
-            _vmmngcon = new nre::Connection("vmmanager");
-            _vmmng = new nre::VMManagerSession(*_vmmngcon);
+            _vmmng = new nre::VMManagerSession("vmmanager");
             nre::GlobalThread *vmmng = nre::GlobalThread::create(
                 vmmng_thread, nre::CPU::current().log_id(), "vmm-vmmng");
             vmmng->set_tls<Vancouver*>(nre::Thread::TLS_PARAM, this);
@@ -83,10 +75,7 @@ private:
 
     Motherboard _mb;
     Timeouts _timeouts;
-    nre::Connection _conscon;
     nre::ConsoleSession _conssess;
-    nre::Connection *_stcon;
-    nre::Connection *_vmmngcon;
     nre::VMManagerSession *_vmmng;
     nre::SList<VCPUBackend> _vcpus;
     StorageDevice *_stdevs[nre::Storage::MAX_CONTROLLER * nre::Storage::MAX_DRIVES];
