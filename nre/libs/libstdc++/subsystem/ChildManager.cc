@@ -703,18 +703,25 @@ void ChildManager::map(UtcbFrameRef &uf, Child *c, DataSpace::RequestType type) 
         }
 
         // build answer
+        DataSpaceDesc childdesc(ds.size(), ds.type(), ds.flags() & flags, ds.phys(), addr,
+                                ds.virt(), ds.desc().align());
         if(type == DataSpace::CREATE) {
-            LOG(DATASPACES, "Child '" << c->cmdline() << "' created:\n\t" << ds << "\n");
+            LOG(DATASPACES, "Child '" << c->cmdline() << "' created:\n\t"
+                                      << "[sel=" << fmt(ds.sel(), "#x")
+                                      << ", umsel=" << fmt(ds.unmapsel(), "#x") << "] "
+                                      << childdesc << "\n");
             uf.delegate(ds.sel(), 0);
             uf.delegate(ds.unmapsel(), 1);
         }
         else {
-            LOG(DATASPACES, "Child '" << c->cmdline() << "' joined:\n\t" << ds << "\n");
+            LOG(DATASPACES, "Child '" << c->cmdline() << "' joined:\n\t"
+                    << "[sel=" << fmt(ds.sel(), "#x")
+                    << ", umsel=" << fmt(ds.unmapsel(), "#x") << "] "
+                    << childdesc << "\n");
             uf.accept_delegates();
             uf.delegate(ds.unmapsel());
         }
-        uf << E_SUCCESS << DataSpaceDesc(ds.size(), ds.type(), ds.flags() & flags, ds.phys(), addr,
-                                         ds.virt(), ds.desc().align());
+        uf << E_SUCCESS << childdesc;
     }
 }
 
