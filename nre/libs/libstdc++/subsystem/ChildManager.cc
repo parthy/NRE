@@ -684,7 +684,7 @@ void ChildManager::map(UtcbFrameRef &uf, Child *c, DataSpace::RequestType type) 
         uint flags = ds.flags();
         try {
             // only create creations and non-device-memory
-            if(type != DataSpace::JOIN && desc.phys() == 0)
+            if(type != DataSpace::JOIN && ds.desc().phys() == 0)
                 flags |= ChildMemory::OWN;
             // restrict permissions based on semaphore permission bits
             else if(type == DataSpace::JOIN) {
@@ -693,7 +693,7 @@ void ChildManager::map(UtcbFrameRef &uf, Child *c, DataSpace::RequestType type) 
                 if(!(crd.attr() & Crd::SM_DN))
                     flags &= ~ChildMemory::X;
             }
-            size_t align = 1 << (desc.align() + ExecEnv::PAGE_SHIFT);
+            size_t align = 1 << (ds.desc().align() + ExecEnv::PAGE_SHIFT);
             addr = c->reglist().find_free(ds.size(), align);
             c->reglist().add(ds.desc(), addr, flags, ds.unmapsel());
         }
