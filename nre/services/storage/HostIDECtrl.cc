@@ -28,7 +28,7 @@ HostIDECtrl::HostIDECtrl(uint id, uint gsi, Ports::port_t portbase,
       _ctrl(portbase, 9), _ctrlreg(portbase + ATA_REG_CONTROL, 1),
       _bm(dma && bmportbase ? new Ports(bmportbase, bmportcount) : nullptr), _clock(1000), _sm(),
       _gsi(gsi ? new Gsi(gsi) : nullptr),
-      _prdt(Storage::MAX_DMA_DESCS * 8, DataSpaceDesc::ANONYMOUS, DataSpaceDesc::RW), _devs() {
+      _prdt(Storage::MAX_DMA_DESCS * 8, DataSpaceDesc::ANONYMOUS, DataSpaceDesc::RW), _tag(), _devs() {
     // check if the bus is empty
     if(!is_bus_responding())
         VTHROW(Exception, E_NOT_FOUND, "Bus " << _id << " is floating");
