@@ -147,10 +147,6 @@ case "$cmd" in
             exit 1
         fi
         binary=${cmd#*=}
-        if [ ! -f "$build/bin/apps/$binary" ]; then
-            echo "The file $build/bin/apps/$binary does not exist" >&2
-            exit 1
-        fi
         ;;
     # for clean and distclean, it makes no sense to build it (this might even fail because e.g. scons has
     # a non existing dependency which might be the reason the user wants to do a clean)
@@ -207,6 +203,14 @@ if $dobuild; then
     fi
 fi
 
+# after building, check whether the requested binary really exists
+if [ "$binary" != "" ]; then
+    if [ ! -f "$build/bin/apps/$binary" ]; then
+        echo "The file $build/bin/apps/$binary does not exist" >&2
+        exit 1
+    fi
+fi
+ 
 # run the specified command, if any
 case "$cmd" in
     clean)
