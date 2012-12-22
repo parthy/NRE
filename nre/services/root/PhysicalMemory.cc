@@ -25,7 +25,7 @@ using namespace nre;
 PhysicalMemory::MemRegion *PhysicalMemory::MemRegion::_free = nullptr;
 PhysicalMemory::RootDataSpace *PhysicalMemory::RootDataSpace::_free = nullptr;
 size_t PhysicalMemory::_totalsize = 0;
-PhysicalMemory::MemRegion PhysicalMemory::MemRegManager::_initial_regs[4];
+PhysicalMemory::MemRegion PhysicalMemory::MemRegManager::_initial_regs[64];
 bool PhysicalMemory::MemRegManager::_initial_added = false;
 PhysicalMemory::MemRegManager PhysicalMemory::_mem INIT_PRIO_PMEM;
 DataSpaceManager<PhysicalMemory::RootDataSpace> PhysicalMemory::_dsmng INIT_PRIO_PMEM;
@@ -40,6 +40,10 @@ void *PhysicalMemory::MemRegion::operator new(size_t) throw() {
     }
 
     if(_free == nullptr) {
+        // if total size is still 0, we haven't mapped the physical memory yet, which means that
+        // during the calculation of the usable memory, we ran out of regions.
+        if(_totalsize == 0)
+            throw Exception(E_CAPACITY, "Not enough initial regions");
         uintptr_t phys = PhysicalMemory::_mem.alloc_safe(ExecEnv::PAGE_SIZE);
         uintptr_t virt = VirtualMemory::phys_to_virt(phys);
         MemRegion *reg = reinterpret_cast<MemRegion*>(virt);
