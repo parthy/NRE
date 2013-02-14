@@ -41,6 +41,7 @@ class Syscalls {
         LOOKUP,
         EC_CTRL,
         SC_CTRL,
+        PT_CTRL,
         SM_CTRL,
         ASSIGN_PCI,
         ASSIGN_GSI,
@@ -167,6 +168,17 @@ public:
      */
     static void ec_ctrl(capsel_t ec, EcOp op) {
         SyscallABI::syscall(ec << 8 | EC_CTRL | op);
+    }
+
+    /**
+     * Sets the portal id to <id>.
+     *
+     * @param pt the capability selector for the Pt
+     * @param id the id to set
+     * @throws SyscallException if the system-call failed (result != E_SUCCESS)
+     */
+    static void pt_ctrl(capsel_t pt, word_t id) {
+        SyscallABI::syscall(pt << 8 | PT_CTRL, id);
     }
 
     /**

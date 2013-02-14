@@ -79,14 +79,16 @@ public:
             };
             uint64_t qual[2];
             uint32_t ctrl[2];
-            int64_t tsc_off;
+            uint64_t : 64;          // reserved
             word_t cr0, cr2, cr3, cr4;
         #ifdef __x86_64__
-            word_t cr8, reserved;
+            word_t cr8;
+            word_t : 64;            // reserved
         #endif
             word_t dr7, sysenter_cs, sysenter_rsp, sysenter_rip;
             Descriptor es, cs, ss, ds, fs, gs;
             Descriptor ld, tr, gd, id;
+            uint64_t tsc_val, tsc_off;
         };
         word_t words[];
     };

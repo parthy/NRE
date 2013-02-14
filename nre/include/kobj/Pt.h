@@ -55,6 +55,7 @@ public:
         : ObjCap(pt, KEEP_SEL_BIT) {
         Syscalls::create_pt(pt, ec->sel(), reinterpret_cast<uintptr_t>(func), mtd,
                             Pd::current()->sel());
+        Syscalls::pt_ctrl(pt, pt);
     }
 
     /**
@@ -69,6 +70,7 @@ public:
         ScopedCapSels pt;
         Syscalls::create_pt(pt.get(), ec->sel(), reinterpret_cast<uintptr_t>(func), mtd,
                             Pd::current()->sel());
+        Syscalls::pt_ctrl(pt.get(), pt.get());
         sel(pt.release());
     }
 
