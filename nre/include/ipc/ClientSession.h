@@ -31,7 +31,7 @@ namespace nre {
 class ClientSession {
 public:
     /**
-     * Opens the session at the service specified by the given connection
+     * Opens the session at the service specified by the given name
      *
      * @param service the service name
      * @throws Exception if the session-creation failed
