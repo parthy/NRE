@@ -112,11 +112,14 @@ public:
      * @param perms the permissions to bind to the cap
      * @return the Crd to pass around
      */
-    Crd crd(uint perms = DataSpaceDesc::W | DataSpaceDesc::X) const {
-        static_assert(Crd::SM_UP == (DataSpaceDesc::W << 1), "SM_UP != W");
+    Crd crd(uint = DataSpaceDesc::W | DataSpaceDesc::X) const {
+        // TODO since NOVA does no longer support this and has no similar way to achieve it, we
+        // have to disable it for now.
+        /*static_assert(Crd::SM_UP == (DataSpaceDesc::W << 1), "SM_UP != W");
         static_assert(Crd::SM_DN == (DataSpaceDesc::X << 1), "SM_DN != X");
         const uint base = Crd::OBJ_ALL & ~(Crd::SM_UP | Crd::SM_DN);
-        return Crd(sel(), 0, base | ((perms & (DataSpaceDesc::W | DataSpaceDesc::X)) << 1));
+        return Crd(sel(), 0, base | ((perms & (DataSpaceDesc::W | DataSpaceDesc::X)) << 1));*/
+        return Crd(sel(), 0, Crd::OBJ_ALL);
     }
     /**
      * @return the selector (=identifier) of this dataspace.
