@@ -1064,7 +1064,7 @@ void ChildManager::Portals::pf(capsel_t pid) {
                                           << fmt(pfaddr, "p") << " @ " << fmt(uf->rip, "p") << " on cpu "
                                           << pcpu << ", error=" << fmt(error, "#x") << "\n");
             }
-            cm->kill_child(pid, uf, FAULT);
+            cm->kill_child(pid, uf, FAULT, 1);
         }
         catch(...) {
             // just let the kernel kill the Ec here
@@ -1077,28 +1077,31 @@ void ChildManager::Portals::pf(capsel_t pid) {
 void ChildManager::Portals::exception(capsel_t pid) {
     ChildManager *cm = Thread::current()->get_tls<ChildManager*>(Thread::TLS_PARAM);
     UtcbExcFrameRef uf;
-    cm->kill_child(pid, uf, FAULT);
+    cm->kill_child(pid, uf, FAULT, 1);
 }
 
 void ChildManager::term_child(capsel_t pid, UtcbExcFrameRef &uf) {
     try {
+        int exitcode;
         bool pd = uf->eip != ExecEnv::THREAD_EXIT;
         {
             ScopedLock<RCULock> guard(&RCU::lock());
             Child *c = get_child(pid);
             // lol: using the condition operator instead of if-else leads to
             // "undefined reference to `nre::ExecEnv::THREAD_EXIT'"
-            int exitcode = uf->eip;
+            exitcode = uf->eip;
             if(pd)
                 exitcode -= ExecEnv::EXIT_START;
             else
                 exitcode -= ExecEnv::THREAD_EXIT;
-            LOG(CHILD_KILL, "Child '" << c->cmdline() << "': " << (pd ? "Pd" : "Thread")
-                                      << " terminated with exit code " << exitcode << " on cpu "
-                                      << CPU::get(get_cpu(pid)).phys_id() << "\n");
+            if(pd || exitcode != 0) {
+                LOG(CHILD_KILL, "Child '" << c->cmdline() << "': " << (pd ? "Pd" : "Thread")
+                                          << " terminated with exit code " << exitcode << " on cpu "
+                                          << CPU::get(get_cpu(pid)).phys_id() << "\n");
+            }
         }
 
-        kill_child(pid, uf, pd ? PROC_EXIT : THREAD_EXIT);
+        kill_child(pid, uf, pd ? PROC_EXIT : THREAD_EXIT, exitcode);
     }
     catch(...) {
         // just let the kernel kill the Ec here
@@ -1107,7 +1110,7 @@ void ChildManager::term_child(capsel_t pid, UtcbExcFrameRef &uf) {
     }
 }
 
-void ChildManager::kill_child(capsel_t pid, UtcbExcFrameRef &uf, ExitType type) {
+void ChildManager::kill_child(capsel_t pid, UtcbExcFrameRef &uf, ExitType type, int exitcode) {
     bool dead = false;
     try {
         ScopedLock<RCULock> guard(&RCU::lock());
@@ -1134,12 +1137,15 @@ void ChildManager::kill_child(capsel_t pid, UtcbExcFrameRef &uf, ExitType type) 
             if(utcb)
                 c->reglist().remove_by_addr(utcb);
         }
-        ExecEnv::collect_backtrace(c->_ec->stack(), uf->rbp, addrs, 32);
-        LOG(CHILD_KILL, "Backtrace:\n");
-        addr = addrs;
-        while(*addr != 0) {
-            LOG(CHILD_KILL, "\t" << fmt(*addr, "p") << "\n");
-            addr++;
+
+        if(exitcode != 0) {
+            ExecEnv::collect_backtrace(c->_ec->stack(), uf->rbp, addrs, 32);
+            LOG(CHILD_KILL, "Backtrace:\n");
+            addr = addrs;
+            while(*addr != 0) {
+                LOG(CHILD_KILL, "\t" << fmt(*addr, "p") << "\n");
+                addr++;
+            }
         }
     }
     catch(const ChildMemoryException &e) {

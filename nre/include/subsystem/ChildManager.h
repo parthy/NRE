@@ -254,7 +254,7 @@ private:
     }
 
     void term_child(capsel_t pid, UtcbExcFrameRef &uf);
-    void kill_child(capsel_t pid, UtcbExcFrameRef &uf, ExitType type);
+    void kill_child(capsel_t pid, UtcbExcFrameRef &uf, ExitType type, int exitcode);
     void destroy_child(capsel_t pid);
 
     static void prepare_stack(Child *c, uintptr_t &sp, uintptr_t csp);
