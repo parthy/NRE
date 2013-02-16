@@ -54,12 +54,12 @@ public:
         _ec->set_tls<capsel_t>(Thread::TLS_PARAM, caps);
     }
     virtual ~ShmSession() {
+        if(_cons)
+            _cons->stop();
         delete _ds;
         delete _sm;
         delete _cons;
     }
-
-    virtual void invalidate();
 
     Consumer<Item> *cons() {
         return _cons;
@@ -111,11 +111,6 @@ void ShmService::portal(capsel_t pid) {
         uf.clear();
         uf << e;
     }
-}
-
-void ShmSession::invalidate() {
-    if(_cons)
-        _cons->stop();
 }
 
 void ShmSession::receiver(void*) {

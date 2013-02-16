@@ -46,8 +46,7 @@ public:
     explicit PingpongSession(Service *s, size_t id, capsel_t cap, capsel_t caps, Pt::portal_func func)
         : ServiceSession(s, id, cap, caps, func) {
     }
-
-    virtual void invalidate();
+    virtual ~PingpongSession();
 };
 
 class PingpongService : public Service {
@@ -62,7 +61,7 @@ private:
     }
 };
 
-void PingpongSession::invalidate() {
+PingpongSession::~PingpongSession() {
     srv->stop();
 }
 
