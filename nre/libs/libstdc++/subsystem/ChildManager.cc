@@ -408,10 +408,10 @@ Child::ServiceCaps *ChildManager::open_session(Child *c, capsel_t cap, const Str
 
 void ChildManager::close_session(Child *c, capsel_t portals) {
     // take care that we don't grab a lock during the portal call
-    auto it = c->_sessions.begin();
+    SList<Child::ServiceCaps>::iterator it;
     {
         ScopedLock<UserSm> guard(&c->_sm);
-        for(; it != c->_sessions.end(); ++it) {
+        for(it = c->_sessions.begin(); it != c->_sessions.end(); ++it) {
             if(it->caps() == portals)
                 break;
         }
