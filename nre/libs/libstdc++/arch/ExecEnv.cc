@@ -18,8 +18,9 @@
 #include <kobj/UserSm.h>
 #include <kobj/Thread.h>
 #include <util/ScopedLock.h>
-#include <Compiler.h>
 #include <util/Math.h>
+#include <cap/CapRange.h>
+#include <Compiler.h>
 
 namespace nre {
 
@@ -41,6 +42,9 @@ void ExecEnv::thread_exit() {
     uintptr_t stack = t->stack();
     uintptr_t utcb = reinterpret_cast<uintptr_t>(t->utcb());
     uint flags = t->flags();
+    // we have to revoke the utcb because NOVA doesn't do so and our parent can't do it for us
+    if(~flags & Thread::HAS_OWN_UTCB)
+        CapRange(utcb >> ExecEnv::PAGE_SHIFT, 1, Crd::MEM_ALL).revoke(true);
     // now its safe to delete our thread object
     delete t;
     asm volatile (
