@@ -30,13 +30,13 @@
  * Usage example:
  *  LOG(TIMER, "My message " << 123 << "\n");
  */
-#define LOG(lvl, expr)                                              \
-    do {                                                            \
-        if(nre::Logging::level & (nre::Logging::lvl)) {             \
-            nre::ScopedLock<nre::UserSm> guard(&nre::Logging::sm);  \
-            nre::Serial::get() << expr;                             \
-        }                                                           \
-    }                                                               \
+#define LOG(lvl, expr)                                                              \
+    do {                                                                            \
+        if((nre::Logging::level & (nre::Logging::lvl)) == (nre::Logging::lvl)) {    \
+            nre::ScopedLock<nre::UserSm> guard(&nre::Logging::sm);                  \
+            nre::Serial::get() << expr;                                             \
+        }                                                                           \
+    }                                                                               \
     while(0);
 
 namespace nre {
@@ -47,6 +47,7 @@ namespace nre {
 class Logging {
 public:
     enum Level {
+        ALWAYS          = 0,
         CHILD_CREATE    = 1 << 0,
         CHILD_KILL      = 1 << 1,
         PFS             = 1 << 2,
