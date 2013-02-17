@@ -211,7 +211,7 @@ int main() {
 
             // register portal for the log service
             LocalThread *regec = LocalThread::create(it->log_id());
-            UtcbFrameRef reguf(ec->utcb());
+            UtcbFrameRef reguf(regec->utcb());
             reguf.accept_delegates(CPU::order());
             it->srv_pt(new Pt(regec, portal_service));
         }
