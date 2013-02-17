@@ -26,7 +26,10 @@ Sc::~Sc() {
         try {
             UtcbFrame uf;
             uf << STOP;
-            uf.translate(sel());
+            if(_startup_info.child)
+                uf.translate(sel());
+            else
+                uf << sel();
             CPU::current().sc_pt().call(uf);
         }
         catch(...) {
@@ -45,11 +48,18 @@ void Sc::start(const String &name) {
     // because the Sc starts immediatly. therefore, it should be completely initialized before
     // its started.
     try {
-        sel(sc.get());
+        if(_startup_info.child)
+            sel(sc.get());
         CPU::current().sc_pt().call(uf);
         uf.check_reply();
         uf >> _qpd;
-        sc.release();
+        if(_startup_info.child)
+            sc.release();
+        else {
+            capsel_t cap;
+            uf >> cap;
+            sel(cap);
+        }
     }
     catch(...) {
         sel(INVALID);

@@ -79,23 +79,24 @@ void Admission::portal_sc(capsel_t) {
                 uf.finish_input();
 
                 ScopedCapSels sc;
-                LOG(ADMISSION, "Root: Creating sc '" << name << "' on cpu " << cpu << "\n");
+                LOG(ADMISSION, "Root: Creating sc '" << name << "' on cpu " << cpu
+                                                     << " (" << sc.get() << ")\n");
                 Syscalls::create_sc(sc.get(), ec, qpd, Pd::current()->sel());
                 add_sc(new SchedEntity(name, cpu, sc.get()));
 
                 uf.accept_delegates();
-                uf.delegate(sc.release());
-                uf << E_SUCCESS << qpd;
+                uf << E_SUCCESS << qpd << sc.release();
             }
             break;
 
             case Sc::STOP: {
-                capsel_t sc = uf.get_translated(0).offset();
+                capsel_t sc;
+                uf >> sc;
                 uf.finish_input();
 
                 SchedEntity *se = remove_sc(sc);
-                LOG(ADMISSION,
-                    "Root: Destroying sc '" << se->name() << "' on cpu " << se->cpu() << "\n");
+                LOG(ADMISSION, "Root: Destroying sc '" << se->name() << "' on cpu " << se->cpu()
+                                                       << " (" << sc << ")\n");
                 delete se;
                 uf << E_SUCCESS;
             }

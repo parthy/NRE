@@ -655,18 +655,21 @@ void ChildManager::Portals::sc(capsel_t pid) {
                 uf.finish_input();
 
                 // TODO we might leak resources here if something fails
-                if(stack) {
-                    uint align = Math::next_pow2_shift(ExecEnv::STACK_SIZE);
-                    DataSpaceDesc desc(ExecEnv::STACK_SIZE, DataSpaceDesc::ANONYMOUS,
-                                       DataSpaceDesc::RW, 0, 0, align - ExecEnv::PAGE_SHIFT);
-                    const DataSpace &ds = cm->_dsm.create(desc);
-                    stackaddr = c->reglist().find_free(ds.size(), ExecEnv::STACK_SIZE);
-                    c->reglist().add(ds.desc(), stackaddr, ds.flags() | ChildMemory::OWN, ds.unmapsel());
-                }
-                if(utcb) {
-                    DataSpaceDesc desc(ExecEnv::PAGE_SIZE, DataSpaceDesc::VIRTUAL, DataSpaceDesc::RW);
-                    utcbaddr = c->reglist().find_free(ExecEnv::PAGE_SIZE);
-                    c->reglist().add(desc, utcbaddr, desc.flags());
+                ScopedLock<UserSm> childguard(&c->_sm);
+                {
+                    if(stack) {
+                        uint align = Math::next_pow2_shift(ExecEnv::STACK_SIZE);
+                        DataSpaceDesc desc(ExecEnv::STACK_SIZE, DataSpaceDesc::ANONYMOUS,
+                                           DataSpaceDesc::RW, 0, 0, align - ExecEnv::PAGE_SHIFT);
+                        const DataSpace &ds = cm->_dsm.create(desc);
+                        stackaddr = c->reglist().find_free(ds.size(), ExecEnv::STACK_SIZE);
+                        c->reglist().add(ds.desc(), stackaddr, ds.flags() | ChildMemory::OWN, ds.unmapsel());
+                    }
+                    if(utcb) {
+                        DataSpaceDesc desc(ExecEnv::PAGE_SIZE, DataSpaceDesc::VIRTUAL, DataSpaceDesc::RW);
+                        utcbaddr = c->reglist().find_free(ExecEnv::PAGE_SIZE);
+                        c->reglist().add(desc, utcbaddr, desc.flags());
+                    }
                 }
 
                 uf << E_SUCCESS;
@@ -690,13 +693,17 @@ void ChildManager::Portals::sc(capsel_t pid) {
                 capsel_t sc;
                 {
                     UtcbFrame puf;
-                    puf.accept_delegates(0);
+                    if(_startup_info.child)
+                        puf.accept_delegates(0);
                     puf << Sc::START << name << cpu << qpd;
                     puf.delegate(ec);
                     CPU::current().sc_pt().call(puf);
                     puf.check_reply();
-                    sc = puf.get_delegated(0).offset();
                     puf >> qpd;
+                    if(_startup_info.child)
+                        sc = puf.get_delegated(0).offset();
+                    else
+                        puf >> sc;
                 }
                 c->add_sc(name, cpu, sc);
 
@@ -717,7 +724,10 @@ void ChildManager::Portals::sc(capsel_t pid) {
                 {
                     UtcbFrame puf;
                     puf << Sc::STOP;
-                    puf.translate(sc);
+                    if(_startup_info.child)
+                        puf.translate(sc);
+                    else
+                        puf << sc;
                     CPU::current().sc_pt().call(puf);
                     puf.check_reply();
                 }

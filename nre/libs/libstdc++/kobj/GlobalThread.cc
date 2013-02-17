@@ -33,7 +33,9 @@ GlobalThread::GlobalThread(uintptr_t uaddr, capsel_t gt, capsel_t sc, cpu_t cpu,
 }
 
 GlobalThread::~GlobalThread() {
-    delete _sc;
+    // don't destroy the main-thread-sc. the parent will do that.
+    if(reinterpret_cast<uintptr_t>(utcb()) != _startup_info.utcb)
+        delete _sc;
 }
 
 void GlobalThread::start(Qpd qpd, Pd *pd) {
