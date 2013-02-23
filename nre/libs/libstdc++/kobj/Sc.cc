@@ -16,20 +16,21 @@
 
 #include <kobj/Sc.h>
 #include <kobj/Pt.h>
+#include <kobj/UserSm.h>
 #include <utcb/UtcbFrame.h>
 #include <util/ScopedCapSels.h>
 
 namespace nre {
 
+static UserSm sm;
+
 Sc::~Sc() {
+    ScopedLock<UserSm> guard(&sm);
     if(sel() != INVALID) {
         try {
             UtcbFrame uf;
             uf << STOP;
-            if(_startup_info.child)
-                uf.translate(sel());
-            else
-                uf << sel();
+            uf.translate(sel());
             CPU::current().sc_pt().call(uf);
         }
         catch(...) {
@@ -44,27 +45,14 @@ void Sc::start(const String &name) {
     uf.delegation_window(Crd(sc.get(), 0, Crd::OBJ_ALL));
     uf << START << name << _ec->cpu() << _qpd;
     uf.delegate(_ec->sel());
-    // in this case we should assign the selector before it has been successfully created
-    // because the Sc starts immediatly. therefore, it should be completely initialized before
-    // its started.
-    try {
-        if(_startup_info.child)
-            sel(sc.get());
-        CPU::current().sc_pt().call(uf);
-        uf.check_reply();
-        uf >> _qpd;
-        if(_startup_info.child)
-            sc.release();
-        else {
-            capsel_t cap;
-            uf >> cap;
-            sel(cap);
-        }
-    }
-    catch(...) {
-        sel(INVALID);
-        throw;
-    }
+
+    // ensure that we don't want to destroy the Sc before we've completely created it, i.e. received
+    // the capability.
+    ScopedLock<UserSm> guard(&sm);
+    CPU::current().sc_pt().call(uf);
+    uf.check_reply();
+    sel(sc.release());
+    uf >> _qpd;
 }
 
 }

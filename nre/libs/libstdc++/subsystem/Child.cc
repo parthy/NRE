@@ -48,10 +48,7 @@ void Child::release_scs() {
     UtcbFrame uf;
     for(auto it = _scs.begin(); it != _scs.end(); ) {
         uf << Sc::STOP;
-        if(_startup_info.child)
-            uf.translate(it->cap());
-        else
-            uf << it->cap();
+        uf.translate(it->cap());
         CPU::current().sc_pt().call(uf);
         uf.clear();
         auto cur = it++;

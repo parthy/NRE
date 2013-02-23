@@ -693,17 +693,13 @@ void ChildManager::Portals::sc(capsel_t pid) {
                 capsel_t sc;
                 {
                     UtcbFrame puf;
-                    if(_startup_info.child)
-                        puf.accept_delegates(0);
+                    puf.accept_delegates(0);
                     puf << Sc::START << name << cpu << qpd;
                     puf.delegate(ec);
                     CPU::current().sc_pt().call(puf);
                     puf.check_reply();
+                    sc = puf.get_delegated(0).offset();
                     puf >> qpd;
-                    if(_startup_info.child)
-                        sc = puf.get_delegated(0).offset();
-                    else
-                        puf >> sc;
                 }
                 c->add_sc(name, cpu, sc);
 
@@ -724,15 +720,13 @@ void ChildManager::Portals::sc(capsel_t pid) {
                 {
                     UtcbFrame puf;
                     puf << Sc::STOP;
-                    if(_startup_info.child)
-                        puf.translate(sc);
-                    else
-                        puf << sc;
+                    puf.translate(sc);
                     CPU::current().sc_pt().call(puf);
                     puf.check_reply();
                 }
 
                 LOG(ADMISSION, "Child '" << c->cmdline() << "' destroyed sc (" << sc << ")\n");
+                uf << E_SUCCESS;
             }
             break;
         }

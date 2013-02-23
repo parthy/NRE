@@ -85,13 +85,13 @@ void Admission::portal_sc(capsel_t) {
                 add_sc(new SchedEntity(name, cpu, sc.get()));
 
                 uf.accept_delegates();
-                uf << E_SUCCESS << qpd << sc.release();
+                uf.delegate(sc.release());
+                uf << E_SUCCESS << qpd;
             }
             break;
 
             case Sc::STOP: {
-                capsel_t sc;
-                uf >> sc;
+                capsel_t sc = uf.get_translated(0).offset();
                 uf.finish_input();
 
                 SchedEntity *se = remove_sc(sc);
