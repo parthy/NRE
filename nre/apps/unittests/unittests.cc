@@ -34,6 +34,7 @@
 #include "tests/ThreadsTest.h"
 #include "tests/OStreamTest.h"
 #include "tests/SListTreapTest.h"
+#include "tests/Sessions.h"
 
 using namespace nre;
 using namespace nre::test;
@@ -68,6 +69,7 @@ const TestCase testcases[] = {
     slisttreaptest_perf,
     ostream_writef,
     ostream_strops,
+    sessions,
 };
 
 int main() {
