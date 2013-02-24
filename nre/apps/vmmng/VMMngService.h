@@ -26,9 +26,8 @@
 
 class VMMngServiceSession : public nre::ServiceSession {
 public:
-    explicit VMMngServiceSession(nre::Service *s, size_t id, capsel_t cap, capsel_t caps,
-                                 nre::Pt::portal_func func)
-        : ServiceSession(s, id, cap, caps, func), _vm(), _ds(), _sm(), _prod() {
+    explicit VMMngServiceSession(nre::Service *s, size_t id, capsel_t caps, nre::Pt::portal_func func)
+        : ServiceSession(s, id, caps, func), _vm(), _ds(), _sm(), _prod() {
     }
     virtual ~VMMngServiceSession() {
         delete _ds;
@@ -78,9 +77,9 @@ public:
     }
 
 private:
-    virtual VMMngServiceSession *create_session(size_t id, capsel_t cap, capsel_t caps,
+    virtual VMMngServiceSession *create_session(size_t id, const nre::String &, capsel_t caps,
                                                 nre::Pt::portal_func func) {
-        return new VMMngServiceSession(this, id, cap, caps, func);
+        return new VMMngServiceSession(this, id, caps, func);
     }
 
     PORTAL static void portal(capsel_t pid);

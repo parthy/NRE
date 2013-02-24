@@ -17,6 +17,7 @@
 #pragma once
 
 #include <stream/IStream.h>
+#include <String.h>
 #include <cstring>
 
 namespace nre {
@@ -30,12 +31,11 @@ public:
      * Reads a value of type <T> from the given string
      *
      * @param str the string
-     * @param len the length or -1 for "use strlen()"
      * @return the read value
      */
     template<typename T>
-    static T read_from(const char *str, size_t len = (size_t)-1) {
-        IStringStream is(str, len);
+    static T read_from(const String &str) {
+        IStringStream is(str);
         T t;
         is >> t;
         return t;
@@ -44,22 +44,20 @@ public:
     /**
      * Constructor
      *
-     * @param str the string
-     * @param len the length or -1 for "use strlen()"
+     * @param str the string (not copied)
      */
-    explicit IStringStream(const char *str, size_t len = (size_t)-1)
-        : IStream(), _str(str), _len(len == (size_t) - 1 ? strlen(str) : len), _pos() {
+    explicit IStringStream(const String &str)
+        : IStream(), _str(str), _pos() {
     }
 
 private:
     virtual char read() {
-        if(_pos < _len)
-            return _str[_pos++];
+        if(_pos < _str.length())
+            return _str.str()[_pos++];
         return '\0';
     }
 
-    const char *_str;
-    size_t _len;
+    const String &_str;
     size_t _pos;
 };
 

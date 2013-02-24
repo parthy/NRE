@@ -31,7 +31,8 @@ public:
      *
      * @param service the service name
      */
-    explicit PtClientSession(const char *service) : ClientSession(service), _pts(new Pt *[CPU::count()]) {
+    explicit PtClientSession(const String &service, const String &args = String())
+            : ClientSession(service, args), _pts(new Pt *[CPU::count()]) {
         for(cpu_t cpu = 0; cpu < CPU::count(); ++cpu)
             _pts[cpu] = available_on(cpu) ? new Pt(caps() + cpu) : nullptr;
     }

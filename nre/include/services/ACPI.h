@@ -69,7 +69,7 @@ public:
      *
      * @param service the service name
      */
-    explicit ACPISession(const char *service) : PtClientSession(service) {
+    explicit ACPISession(const String &service) : PtClientSession(service) {
     }
 
     /**

@@ -22,6 +22,32 @@
 
 namespace nre {
 
+const ClientSession *Child::open_session(const String &name, const String &args,
+                                         const ServiceRegistry::Service *s) {
+    ScopedLock<UserSm> guard(&_sm);
+    // atm, we simply accept all sessions here. later we might restrict the number of sessions
+    // per service and client
+    ClientSession *sess;
+    if(s)
+        sess = new ClientSession(name, args, s->pts());
+    else
+        sess = new ClientSession(name, args);
+    _sessions.append(sess);
+    return sess;
+}
+
+void Child::close_session(capsel_t handle) {
+    ScopedLock<UserSm> guard(&_sm);
+    for(auto it = _sessions.begin(); it != _sessions.end(); ++it) {
+        if(it->caps() + CPU::current().log_id() == handle) {
+            _sessions.remove(&*it);
+            delete &*it;
+            return;
+        }
+    }
+    VTHROW(Exception, E_NOT_FOUND, "Session with handle " << handle << " not found");
+}
+
 void Child::release_gsis() {
     UtcbFrame uf;
     for(uint i = 0; i < Hip::MAX_GSIS; ++i) {

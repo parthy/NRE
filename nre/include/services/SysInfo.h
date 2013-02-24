@@ -131,7 +131,7 @@ public:
      *
      * @param service the service name
      */
-    explicit SysInfoSession(const char *service) : PtClientSession(service) {
+    explicit SysInfoSession(const String &service) : PtClientSession(service) {
     }
 
     /**

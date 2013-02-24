@@ -89,36 +89,6 @@ class Child : public RCUObject {
         capsel_t _cap;
     };
 
-    /**
-     * Stores the offset of the capability selectors for each session
-     */
-    class ServiceCaps : public SListItem {
-    public:
-        explicit ServiceCaps(const char *service, capsel_t cap, Pt *pt, bool free)
-            : SListItem(), _pt(pt), _free(free), _sess(new ClientSession(service, cap, *pt)), _cap(cap) {
-        }
-        ~ServiceCaps() {
-            if(_free)
-                delete _pt;
-        }
-
-        ClientSession *session() {
-            return _sess;
-        }
-        const BitField<Hip::MAX_CPUS> &available() const {
-            return _sess->available();
-        }
-        capsel_t caps() const {
-            return _sess->caps();
-        }
-
-    protected:
-        Pt *_pt;
-        bool _free;
-        ClientSession *_sess;
-        ObjCap _cap;
-    };
-
 public:
     typedef capsel_t id_type;
 
@@ -212,24 +182,38 @@ public:
         return _scs;
     }
 
+    /**
+     * Opens a session at service <name>, if allowed.
+     *
+     * @param name the name of the service
+     * @param args the session arguments
+     * @param s if known, the service, nullptr otherwise#
+     * @return the created handle
+     * @throws Exception if not allowed
+     */
+    const ClientSession *open_session(const String &name, const String &args,
+                                      const ServiceRegistry::Service *s);
+    /**
+     * Closes the session identified by given handle.
+     *
+     * @param handle the handle
+     * @throws Exception if not found
+     */
+    void close_session(capsel_t handle);
+
 private:
     explicit Child(ChildManager *cm, id_type id, const String &cmdline)
-        : RCUObject(), _cm(cm), _id(id), _cmdline(cmdline), _started(), _pd(), _ec(), _srvecs(),
+        : RCUObject(), _cm(cm), _id(id), _cmdline(cmdline), _started(), _pd(), _ec(),
           _pts(), _ptcount(), _regs(), _io(PortManager::USED), _scs(), _gsis(), _sessions(),
           _gsi_caps(CapSelSpace::get().allocate(Hip::MAX_GSIS)), _gsi_next(), _entry(),
           _main(), _stack(), _utcb(), _hip(), _last_fault_addr(), _last_fault_cpu(), _sm() {
     }
     virtual ~Child() {
-        for(size_t i = 0; i < CPU::count(); ++i)
-            delete _srvecs[i];
-        delete[] _srvecs;
         for(size_t i = 0; i < _ptcount; ++i)
             delete _pts[i];
         delete[] _pts;
-        if(_ec)
-            delete _ec;
-        if(_pd)
-            delete _pd;
+        delete _ec;
+        delete _pd;
         release_gsis();
         release_ports();
         release_scs();
@@ -268,14 +252,13 @@ private:
     bool _started;
     Pd *_pd;
     GlobalThread *_ec;
-    LocalThread **_srvecs;
     Pt **_pts;
     size_t _ptcount;
     ChildMemory _regs;
     PortManager _io;
     SList<SchedEntity> _scs;
     BitField<Hip::MAX_GSIS> _gsis;
-    SList<ServiceCaps> _sessions;
+    SList<ClientSession> _sessions;
     capsel_t _gsi_caps;
     capsel_t _gsi_next;
     uintptr_t _entry;

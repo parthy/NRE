@@ -14,6 +14,8 @@
  * General Public License version 2 for more details.
  */
 
+#include <stream/IStringStream.h>
+
 #include "ConsoleService.h"
 #include "ConsoleSessionData.h"
 #include "HostVGA.h"
@@ -38,7 +40,9 @@ ConsoleService::ConsoleService(const char *name, uint modifier)
 }
 
 void ConsoleService::create_dummy(uint page, const String &title) {
-    ConsoleSessionData *sess = static_cast<ConsoleSessionData*>(new_session(Pd::current()->sel()));
+    OStringStream args;
+    args << 0 << " " << title;
+    ConsoleSessionData *sess = static_cast<ConsoleSessionData*>(new_session(args.str()));
     sess->set_page(page);
     DataSpace *ds = new DataSpace(ExecEnv::PAGE_SIZE * Screen::PAGES, DataSpaceDesc::ANONYMOUS,
                                   DataSpaceDesc::RW);
@@ -46,7 +50,7 @@ void ConsoleService::create_dummy(uint page, const String &title) {
     memcpy(reinterpret_cast<void*>(ds->virt() + sess->offset()),
            reinterpret_cast<void*>(_screen->mem().virt() + sess->offset()),
            ExecEnv::PAGE_SIZE);
-    sess->create(nullptr, ds, 0, 0, title);
+    sess->create(nullptr, ds, 0);
 }
 
 void ConsoleService::up() {
@@ -99,9 +103,15 @@ void ConsoleService::switch_to(size_t console) {
     }
 }
 
-ServiceSession *ConsoleService::create_session(size_t id, capsel_t cap, capsel_t caps,
+ServiceSession *ConsoleService::create_session(size_t id, const String &args, capsel_t caps,
                                                Pt::portal_func func) {
-    return new ConsoleSessionData(this, id, cap, caps, func);
+    size_t con;
+    String title;
+    IStringStream is(args);
+    is >> con >> title;
+    if(con >= Console::SUBCONS)
+        VTHROW(Exception, E_ARGS_INVALID, "Subconsole " << con << " does not exist");
+    return new ConsoleSessionData(this, id, caps, func, con, title);
 }
 
 void ConsoleService::remove(ConsoleSessionData *sess) {

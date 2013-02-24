@@ -99,9 +99,9 @@ CPU0Init::CPU0Init() {
     uintptr_t regec_utcb = VirtualMemory::alloc(Utcb::SIZE);
     LocalThread *regec = LocalThread::create(cpu.log_id(), ObjCap::INVALID,
                                              reinterpret_cast<uintptr_t>(regptstack), regec_utcb);
-    UtcbFrameRef reguf(regec->utcb());
-    reguf.accept_delegates(CPU::order());
     cpu.srv_pt(new Pt(regec, portal_service));
+    UtcbFrameRef reguf(regec->utcb());
+    reguf.accept_translates();
 }
 
 static void adjust_memory_map() {
@@ -211,9 +211,9 @@ int main() {
 
             // register portal for the log service
             LocalThread *regec = LocalThread::create(it->log_id());
-            UtcbFrameRef reguf(regec->utcb());
-            reguf.accept_delegates(CPU::order());
             it->srv_pt(new Pt(regec, portal_service));
+            UtcbFrameRef reguf(regec->utcb());
+            reguf.accept_translates();
         }
     }
 
@@ -292,33 +292,37 @@ static void portal_service(capsel_t) {
     UtcbFrameRef uf;
     try {
         Service::Command cmd;
-        String name;
-        uf >> cmd >> name;
+        uf >> cmd;
         switch(cmd) {
             case Service::REGISTER: {
+                String name;
                 BitField<Hip::MAX_CPUS> available;
-                capsel_t cap = uf.get_delegated(uf.delegation_window().order()).offset();
-                uf >> available;
+                capsel_t cap;
+                uf >> name >> available >> cap;
                 uf.finish_input();
 
                 capsel_t sm = mng->reg_service(cap, name, available);
-                uf.accept_delegates();
                 uf.delegate(sm);
                 uf << E_SUCCESS;
             }
             break;
 
-            case Service::OPEN_SESSION:
+            case Service::OPEN_SESSION: {
+                String name;
+                uf >> name;
+                uf.finish_input();
+                VTHROW(Exception, E_NOT_FOUND, "Unable to find service '" << name << "'");
+            }
+            break;
+
             case Service::CLOSE_SESSION:
             case Service::UNREGISTER:
-            case Service::CLIENT_DIED:
                 uf.clear();
                 uf << E_NOT_FOUND;
                 break;
         }
     }
     catch(const Exception& e) {
-        Syscalls::revoke(uf.delegation_window(), true);
         uf.clear();
         uf << e;
     }

@@ -17,6 +17,8 @@
 #pragma once
 
 #include <arch/Types.h>
+#include <stream/OStringStream.h>
+#include <String.h>
 
 namespace nre {
 
@@ -62,6 +64,14 @@ public:
     }
     IStream & operator>>(llong &n) {
         return readn<llong>(n);
+    }
+    IStream & operator>>(String &str) {
+        OStringStream os;
+        char c;
+        while((c = read()) != '\0' && c != ' ')
+            os << c;
+        str.reset(os.str(), os.length());
+        return *this;
     }
 
 private:

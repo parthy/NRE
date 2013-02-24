@@ -95,11 +95,11 @@ public:
      * @param ds the dataspace to use for data exchange
      * @param drive the drive
      */
-    explicit StorageSession(const char *service, DataSpace &ds, size_t drive)
-        : PtClientSession(service),
+    explicit StorageSession(const String &service, DataSpace &ds, size_t drive)
+        : PtClientSession(service, build_args(drive)),
           _ctrlds(ExecEnv::PAGE_SIZE, DataSpaceDesc::ANONYMOUS, DataSpaceDesc::RW), _sm(0),
           _cons(_ctrlds, _sm, true) {
-        init(ds, drive);
+        init(ds);
     }
 
     /**
@@ -190,15 +190,21 @@ public:
     }
 
 private:
-    void init(DataSpace &ds, size_t drive) {
+    void init(DataSpace &ds) {
         UtcbFrame uf;
         uf.delegate(_ctrlds.sel(), 0);
         uf.delegate(ds.sel(), 1);
         uf.delegate(_sm.sel(), 2);
-        uf << Storage::INIT << drive;
+        uf << Storage::INIT;
         pt().call(uf);
         uf.check_reply();
         uf >> _params;
+    }
+
+    static String build_args(size_t drive) {
+        OStringStream os;
+        os << drive;
+        return os.str();
     }
 
     DataSpace _ctrlds;

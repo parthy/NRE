@@ -47,8 +47,8 @@ static ShmService *srv;
 
 class ShmSession : public ServiceSession {
 public:
-    explicit ShmSession(Service *s, size_t id, capsel_t cap, capsel_t caps, Pt::portal_func func)
-        : ServiceSession(s, id, cap, caps, func),
+    explicit ShmSession(Service *s, size_t id, capsel_t caps, Pt::portal_func func)
+        : ServiceSession(s, id, caps, func),
           _ec(GlobalThread::create(receiver, CPU::current().log_id(), "shm-receiver")),
           _cons(), _ds(), _sm() {
         _ec->set_tls<capsel_t>(Thread::TLS_PARAM, caps);
@@ -91,9 +91,9 @@ public:
 private:
     PORTAL static void portal(capsel_t pid);
 
-    virtual ServiceSession *create_session(size_t id, capsel_t cap, capsel_t caps,
+    virtual ServiceSession *create_session(size_t id, const String &, capsel_t caps,
                                            Pt::portal_func func) {
-        return new ShmSession(this, id, cap, caps, func);
+        return new ShmSession(this, id, caps, func);
     }
 };
 

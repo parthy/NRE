@@ -52,7 +52,7 @@ public:
      *
      * @param service the service name
      */
-    explicit VMManagerSession(const char *service)
+    explicit VMManagerSession(const String &service)
         : ClientSession(service), _ds(DS_SIZE, DataSpaceDesc::ANONYMOUS, DataSpaceDesc::RW), _sm(0),
           _consumer(_ds, _sm, true) {
         create();

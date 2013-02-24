@@ -54,7 +54,7 @@ public:
      *
      * @param service the service name
      */
-    explicit TimerSession(const char *service) : PtClientSession(service) {
+    explicit TimerSession(const String &service) : PtClientSession(service) {
         get_sms();
     }
     /**

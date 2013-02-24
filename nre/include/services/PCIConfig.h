@@ -60,7 +60,7 @@ public:
      *
      * @param service the service name
      */
-    explicit PCIConfigSession(const char *service) : PtClientSession(service) {
+    explicit PCIConfigSession(const String &service) : PtClientSession(service) {
     }
 
     /**

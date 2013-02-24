@@ -43,8 +43,8 @@ static PingpongService *srv;
 
 class PingpongSession : public ServiceSession {
 public:
-    explicit PingpongSession(Service *s, size_t id, capsel_t cap, capsel_t caps, Pt::portal_func func)
-        : ServiceSession(s, id, cap, caps, func) {
+    explicit PingpongSession(Service *s, size_t id, capsel_t caps, Pt::portal_func func)
+        : ServiceSession(s, id, caps, func) {
     }
     virtual ~PingpongSession();
 };
@@ -55,9 +55,9 @@ public:
     }
 
 private:
-    virtual ServiceSession *create_session(size_t id, capsel_t cap, capsel_t caps,
+    virtual ServiceSession *create_session(size_t id, const String&, capsel_t caps,
                                            Pt::portal_func func) {
-        return new PingpongSession(this, id, cap, caps, func);
+        return new PingpongSession(this, id, caps, func);
     }
 };
 

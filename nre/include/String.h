@@ -57,6 +57,15 @@ public:
             reset(s._str, s._len);
         return *this;
     }
+    /**
+     * Move-constructor
+     */
+    String(String &&s) : _str(s._str), _len(s._len) {
+        s._str = nullptr;
+    }
+    /**
+     * Destructor
+     */
     ~String() {
         delete[] _str;
     }

@@ -46,7 +46,7 @@ int main(int argc, char *argv[]) {
     uint modifier = Keyboard::LCTRL;
     for(int i = 1; i < argc; ++i) {
         if(strncmp(argv[i], "modifier=", 9) == 0)
-            modifier = 1 << IStringStream::read_from<uint>(argv[i] + 9, strlen(argv[i] + 9));
+            modifier = 1 << IStringStream::read_from<uint>(String(argv[i] + 9, strlen(argv[i] + 9)));
     }
 
     srv = new ConsoleService("console", modifier);

@@ -18,6 +18,7 @@
 #include <ipc/Producer.h>
 #include <services/PCIConfig.h>
 #include <services/ACPI.h>
+#include <stream/IStringStream.h>
 #include <util/PCI.h>
 #include <Logging.h>
 #include <cstring>
@@ -35,9 +36,9 @@ static StorageService *srv;
 
 class StorageServiceSession : public ServiceSession {
 public:
-    explicit StorageServiceSession(Service *s, size_t id, capsel_t cap, capsel_t caps,
-                                   Pt::portal_func func)
-        : ServiceSession(s, id, cap, caps, func), _ctrlds(), _sm(), _prod(), _datads(), _drive() {
+    explicit StorageServiceSession(Service *s, size_t id, capsel_t caps,
+                                   Pt::portal_func func, size_t drive)
+        : ServiceSession(s, id, caps, func), _ctrlds(), _sm(), _prod(), _datads(), _drive(drive) {
     }
     virtual ~StorageServiceSession() {
         delete _ctrlds;
@@ -65,20 +66,14 @@ public:
         return _prod;
     }
 
-    void init(DataSpace *ctrlds, DataSpace *data, Sm *sm, size_t drive) {
-        size_t ctrl = drive / Storage::MAX_DRIVES;
-        if(!mng->exists(ctrl) || !mng->get(ctrl)->exists(drive)) {
-            VTHROW(Exception, E_ARGS_INVALID,
-                   "Controller/drive (" << ctrl << "," << drive << ") does not exist");
-        }
+    void init(DataSpace *ctrlds, DataSpace *data, Sm *sm) {
         if(_ctrlds)
             throw Exception(E_EXISTS, "Already initialized");
         _ctrlds = ctrlds;
         _sm = sm;
         _prod = new Producer<Storage::Packet>(*_ctrlds, *_sm, false);
         _datads = data;
-        _drive = drive;
-        mng->get(ctrl)->get_params(_drive, &_params);
+        mng->get(_drive / Storage::MAX_DRIVES)->get_params(_drive, &_params);
     }
 
 private:
@@ -103,9 +98,17 @@ public:
     }
 
 private:
-    virtual ServiceSession *create_session(size_t id, capsel_t cap, capsel_t caps,
+    virtual ServiceSession *create_session(size_t id, const String &args, capsel_t caps,
                                            Pt::portal_func func) {
-        return new StorageServiceSession(this, id, cap, caps, func);
+        IStringStream is(args);
+        size_t drive;
+        is >> drive;
+        size_t ctrl = drive / Storage::MAX_DRIVES;
+        if(!mng->exists(ctrl) || !mng->get(ctrl)->exists(drive)) {
+            VTHROW(Exception, E_ARGS_INVALID,
+                   "Controller/drive (" << ctrl << "," << drive << ") does not exist");
+        }
+        return new StorageServiceSession(this, id, caps, func, drive);
     }
 
     PORTAL static void portal(capsel_t pid);
@@ -123,10 +126,8 @@ void StorageService::portal(capsel_t pid) {
                 capsel_t ctrlsel = uf.get_delegated(0).offset();
                 capsel_t datasel = uf.get_delegated(0).offset();
                 capsel_t smsel = uf.get_delegated(0).offset();
-                size_t drive;
-                uf >> drive;
                 uf.finish_input();
-                sess->init(new DataSpace(ctrlsel), new DataSpace(datasel), new Sm(smsel, false), drive);
+                sess->init(new DataSpace(ctrlsel), new DataSpace(datasel), new Sm(smsel, false));
                 uf.accept_delegates();
                 uf << E_SUCCESS << sess->params();
             }

@@ -88,11 +88,12 @@ public:
      * @param console the console to attach to
      * @param title the subconsole title
      */
-    explicit ConsoleSession(const char *service, size_t console, const String &title)
-        : ClientSession(service), _in_ds(IN_DS_SIZE, DataSpaceDesc::ANONYMOUS, DataSpaceDesc::RW),
+    explicit ConsoleSession(const String &service, size_t console, const String &title)
+        : ClientSession(service, build_args(console, title)),
+          _in_ds(IN_DS_SIZE, DataSpaceDesc::ANONYMOUS, DataSpaceDesc::RW),
           _out_ds(OUT_DS_SIZE, DataSpaceDesc::ANONYMOUS, DataSpaceDesc::RW), _sm(0),
           _consumer(_in_ds, _sm, true) {
-        create(console, title);
+        create();
     }
 
     /**
@@ -165,15 +166,21 @@ public:
     }
 
 private:
-    void create(size_t console, const String &title) {
+    void create() {
         UtcbFrame uf;
-        uf << Console::CREATE << console << title;
+        uf << Console::CREATE;
         uf.delegate(_in_ds.sel(), 0);
         uf.delegate(_out_ds.sel(), 1);
         uf.delegate(_sm.sel(), 2);
         Pt pt(caps() + CPU::current().log_id());
         pt.call(uf);
         uf.check_reply();
+    }
+
+    static String build_args(size_t console, const String &title) {
+        OStringStream os;
+        os << console << " " << title;
+        return os.str();
     }
 
     DataSpace _in_ds;

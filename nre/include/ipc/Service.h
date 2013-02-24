@@ -17,6 +17,7 @@
 #pragma once
 
 #include <kobj/LocalThread.h>
+#include <kobj/GlobalThread.h>
 #include <kobj/Pt.h>
 #include <kobj/Sm.h>
 #include <kobj/UserSm.h>
@@ -24,13 +25,13 @@
 #include <ipc/ServiceSession.h>
 #include <mem/DataSpace.h>
 #include <utcb/UtcbFrame.h>
-#include <Exception.h>
 #include <util/ScopedPtr.h>
 #include <util/CPUSet.h>
+#include <util/Math.h>
 #include <bits/BitField.h>
+#include <Exception.h>
 #include <RCU.h>
 #include <CPU.h>
-#include <util/Math.h>
 
 namespace nre {
 
@@ -72,7 +73,6 @@ public:
         OPEN_SESSION,
         CLOSE_SESSION,
         UNREGISTER,
-        CLIENT_DIED
     };
 
     /**
@@ -87,7 +87,7 @@ public:
     explicit Service(const char *name, const CPUSet &cpus, Pt::portal_func portal)
         : _regcaps(CapSelSpace::get().allocate(1 << CPU::order(), 1 << CPU::order())),
           _caps(CapSelSpace::get().allocate(MAX_SESSIONS << CPU::order(), MAX_SESSIONS << CPU::order())),
-          _sm(), _kill_sm(), _stop(false), _name(name), _func(portal),
+          _sm(), _cleanup_sm(0), _stop_sm(0), _stop(false), _cleaning(0), _name(name), _func(portal),
           _insts(new ServiceCPUHandler *[CPU::count()]), _reg_cpus(cpus.get()), _sessions() {
         for(size_t i = 0; i < CPU::count(); ++i) {
             if(_reg_cpus.is_set(i))
@@ -100,6 +100,7 @@ public:
      * Destroys this service, i.e. destroys all sessions. You should have called unreg() before.
      */
     virtual ~Service() {
+        unreg();
         for(size_t i = 0; i < MAX_SESSIONS; ++i) {
             ServiceSession *sess = rcu_dereference(_sessions[i]);
             if(sess)
@@ -113,25 +114,28 @@ public:
     }
 
     /**
-     * Registers and starts the service
+     * Registers and starts service. This method blocks until stop() is called.
      */
     void start() {
-        _stop = false;
-        reg();
-        while(!_stop) {
-            _kill_sm->down();
-            check_sessions();
-        }
-        unreg();
+        UtcbFrame uf;
+        uf << REGISTER << String(_name) << _reg_cpus;
+        // special case for root here because translate doesn't work inside one Pd.
+        if(_startup_info.child)
+            uf.delegate(CapRange(_regcaps, 1 << CPU::order(), Crd::OBJ_ALL));
+        else
+            uf << _regcaps;
+        CPU::current().srv_pt().call(uf);
+        uf.check_reply();
+        _stop_sm.down();
     }
 
     /**
-     * Requests a stop of the service loop
+     * Stops the service, i.e. it unblocks the thread that called start().
      */
     void stop() {
-        _stop = true;
-        Sync::memory_barrier();
-        _kill_sm->up();
+        // don't unregister us here because we might be in a portal called by our parent and thus
+        // we can't call our parent to unregister us
+        _stop_sm.up();
     }
 
     /**
@@ -205,25 +209,24 @@ protected:
     /**
      * Creates a new session in a free slot.
      *
-     * @param cap a cap of the client that will be valid as long as the client exists
+     * @param args the arguments for the session
      * @return the created session
      * @throws ServiceException if there are no free slots anymore
      */
-    ServiceSession *new_session(capsel_t cap);
+    ServiceSession *new_session(const String &args);
 
 private:
     /**
      * May be overwritten to create an inherited class from ServiceSession.
      *
      * @param id the session-id
-     * @param cap a cap of the client that will be valid as long as the client exists
+     * @param args the arguments for the session
      * @param pts the capabilities
      * @param func the portal-function
      * @return the session-object
      */
-    virtual ServiceSession *create_session(size_t id, capsel_t cap, capsel_t pts,
-                                           Pt::portal_func func) {
-        return new ServiceSession(this, id, cap, pts, func);
+    virtual ServiceSession *create_session(size_t id, const String&, capsel_t pts, Pt::portal_func func) {
+        return new ServiceSession(this, id, pts, func);
     }
     /**
      * Is called after a session has been created and put into the corresponding slot. May be
@@ -234,15 +237,6 @@ private:
     virtual void created_session(UNUSED size_t id) {
     }
 
-    void reg() {
-        UtcbFrame uf;
-        uf.accept_delegates(0);
-        uf.delegate(CapRange(_regcaps, 1 << CPU::order(), Crd::OBJ_ALL));
-        uf << REGISTER << String(_name) << _reg_cpus;
-        CPU::current().srv_pt().call(uf);
-        uf.check_reply();
-        _kill_sm = new Sm(uf.get_delegated(0).offset(), true);
-    }
     void unreg() {
         UtcbFrame uf;
         uf << UNREGISTER << String(_name);
@@ -250,17 +244,10 @@ private:
         uf.check_reply();
     }
 
-    void add_session(ServiceSession *sess) {
-        rcu_assign_pointer(_sessions[sess->id()], sess);
-        created_session(sess->id());
-    }
-    void remove_session(ServiceSession *sess) {
-        rcu_assign_pointer(_sessions[sess->id()], nullptr);
-        sess->invalidate();
-        RCU::invalidate(sess);
-        RCU::gc(true);
-    }
-    void check_sessions();
+    static void cleanup_thread(void*);
+    void add_session(ServiceSession *sess);
+    void remove_session(ServiceSession *sess);
+    void do_remove_session(ServiceSession *sess);
     void destroy_session(capsel_t pid);
 
     Service(const Service&);
@@ -269,8 +256,10 @@ private:
     capsel_t _regcaps;
     capsel_t _caps;
     UserSm _sm;
-    Sm *_kill_sm;
+    Sm _cleanup_sm;
+    Sm _stop_sm;
     bool _stop;
+    word_t _cleaning;
     const char *_name;
     Pt::portal_func _func;
     ServiceCPUHandler **_insts;

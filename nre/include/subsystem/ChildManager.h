@@ -235,22 +235,9 @@ private:
         _regsm.up();
         return srv->sm().sel();
     }
-    Child::ServiceCaps *open_session(Child *c, capsel_t cap, const String &name,
-                                     const ServiceRegistry::Service *service);
-    void close_session(Child *c, capsel_t portals);
     void unreg_service(Child *c, const String& name) {
         ScopedLock<UserSm> guard(&_sm);
         _registry.unreg(c, name);
-    }
-    void notify_services() {
-        {
-            ScopedLock<UserSm> guard(&_sm);
-            for(auto it = _registry.begin(); it != _registry.end(); ++it)
-                it->sm().up();
-        }
-        UtcbFrame uf;
-        uf << Service::CLIENT_DIED;
-        CPU::current().srv_pt().call(uf);
     }
 
     void term_child(capsel_t pid, UtcbExcFrameRef &uf);
@@ -260,7 +247,6 @@ private:
     static void prepare_stack(Child *c, uintptr_t &sp, uintptr_t csp);
     void build_hip(Child *c, const ChildConfig &config);
 
-    capsel_t open_session_at_parent(const String &name, BitField<Hip::MAX_CPUS> &available);
     void map(UtcbFrameRef &uf, Child *c, DataSpace::RequestType type);
     void switch_to(UtcbFrameRef &uf, Child *c);
     void unmap(UtcbFrameRef &uf, Child *c);
@@ -279,6 +265,7 @@ private:
     Sm _regsm;
     Sm _diesm;
     LocalThread **_ecs;
+    LocalThread **_srvecs;
 };
 
 }

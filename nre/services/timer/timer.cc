@@ -29,8 +29,8 @@ static TimerService *srv;
 
 class TimerSessionData : public ServiceSession {
 public:
-    explicit TimerSessionData(Service *s, size_t id, capsel_t cap, capsel_t caps, Pt::portal_func func)
-        : ServiceSession(s, id, cap, caps, func), _data(new HostTimer::ClientData[CPU::count()]) {
+    explicit TimerSessionData(Service *s, size_t id, capsel_t caps, Pt::portal_func func)
+        : ServiceSession(s, id, caps, func), _data(new HostTimer::ClientData[CPU::count()]) {
         for(auto it = CPU::begin(); it != CPU::end(); ++it)
             timer->setup_clientdata(id, _data + it->log_id(), it->log_id());
     }
@@ -53,9 +53,9 @@ public:
     }
 
 private:
-    virtual ServiceSession *create_session(size_t id, capsel_t cap, capsel_t caps,
+    virtual ServiceSession *create_session(size_t id, const String &, capsel_t caps,
                                            Pt::portal_func func) {
-        return new TimerSessionData(this, id, cap, caps, func);
+        return new TimerSessionData(this, id, caps, func);
     }
 };
 

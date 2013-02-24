@@ -17,6 +17,7 @@
 #pragma once
 
 #include <utcb/UtcbFrame.h>
+#include <collection/SList.h>
 #include <ipc/Service.h>
 #include <cap/CapSelSpace.h>
 #include <kobj/Pt.h>
@@ -28,41 +29,36 @@ namespace nre {
  * The client-part of a session. This way the service can manage per-session-data. That is,
  * it can distinguish between clients.
  */
-class ClientSession {
+class ClientSession : public SListItem {
 public:
     /**
-     * Opens the session at the service specified by the given name
+     * Opens the session at the service specified by the given name with the parent-portal
      *
      * @param service the service name
+     * @param args the arguments for the session
      * @throws Exception if the session-creation failed
      */
-    explicit ClientSession(const char *service)
-        : _available(), _name(service), _pt(CPU::current().srv_pt()),
-          _caps(open(Pd::current()->sel())) {
+    explicit ClientSession(const String &service, const String &args = String())
+        : SListItem(), _available(), _name(service), _pts(ObjCap::INVALID), _caps(open(args)) {
     }
     /**
-     * Opens a session with portal <pt> at service with given name and delegates <cap>
+     * Opens the session at the service specified by the given name with given portal.
      *
      * @param service the service name
-     * @param cap the cap to delegate
-     * @param pt the portal to call
+     * @param args the arguments for the session
+     * @param pts the portal selectors
      * @throws Exception if the session-creation failed
      */
-    explicit ClientSession(const char *service, capsel_t cap, Pt &pt)
-        : _available(), _name(service), _pt(pt), _caps(open(cap)) {
+    explicit ClientSession(const String &service, const String &args, capsel_t pts)
+        : SListItem(), _available(), _name(service), _pts(pts), _caps(open(args)) {
     }
 
     /**
      * Closes the session again
      */
     virtual ~ClientSession() {
-        try {
-            close();
-            CapSelSpace::get().free(_caps, 1 << CPU::order());
-        }
-        catch(...) {
-            // ignore exceptions in the destructor
-        }
+        close();
+        CapSelSpace::get().free(_caps, 1 << CPU::order());
     }
 
     /**
@@ -91,36 +87,40 @@ public:
         return _caps;
     }
 
-private:
-    capsel_t open(capsel_t cap) {
+protected:
+    capsel_t open(const String &args) {
+        // grab session-portals from service
+        ScopedCapSels ptcaps(1 << CPU::order(), 1 << CPU::order());
         UtcbFrame uf;
-        ScopedCapSels caps(1 << CPU::order(), 1 << CPU::order());
-        uf.delegation_window(Crd(caps.get(), CPU::order(), Crd::OBJ_ALL));
-        // we delegate a cap because it will be revoked if we get killed. at the moment, it has
-        // to be a capability that is explicitly revoked by the parent. later, this doesn't matter
-        // because NOVA will revoke all caps of this Pd.
-        uf.delegate(cap);
-        uf << Service::OPEN_SESSION << _name;
-        _pt.call(uf);
+        uf.delegation_window(Crd(ptcaps.get(), CPU::order(), Crd::OBJ_ALL));
+        uf << Service::OPEN_SESSION << _name << args;
+        call(uf);
         uf.check_reply();
         uf >> _available;
-        return caps.release();
+        return ptcaps.release();
     }
-
     void close() {
         UtcbFrame uf;
-        // + cpu-number because we can't be sure that portals on other CPUs exist
         uf.translate(_caps + CPU::current().log_id());
         uf << Service::CLOSE_SESSION << _name;
-        _pt.call(uf);
+        call(uf);
+        uf.check_reply();
     }
 
+    void call(UtcbFrame &uf) {
+        if(_pts != ObjCap::INVALID)
+            Pt(_pts + CPU::current().log_id()).call(uf);
+        else
+            CPU::current().srv_pt().call(uf);
+    }
+
+private:
     ClientSession(const ClientSession&);
     ClientSession& operator=(const ClientSession&);
 
     BitField<Hip::MAX_CPUS> _available;
     String _name;
-    Pt &_pt;
+    capsel_t _pts;
     capsel_t _caps;
 };
 

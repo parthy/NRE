@@ -29,9 +29,7 @@ ServiceCPUHandler::ServiceCPUHandler(Service* s, capsel_t pt, cpu_t cpu)
       _pt(_service_ec, pt, portal), _sm() {
     _service_ec->set_tls<Service*>(Thread::TLS_PARAM, s);
     UtcbFrameRef ecuf(_service_ec->utcb());
-    // for session-identification
-    ecuf.accept_translates(s->_caps, Service::MAX_SESSIONS_ORDER + CPU::order());
-    ecuf.accept_delegates(0);
+    ecuf.accept_translates();
 }
 
 void ServiceCPUHandler::portal(capsel_t) {
@@ -43,10 +41,11 @@ void ServiceCPUHandler::portal(capsel_t) {
         uf >> cmd >> name;
         switch(cmd) {
             case Service::OPEN_SESSION: {
-                capsel_t cap = uf.get_delegated(0).offset();
+                String args;
+                uf >> args;
                 uf.finish_input();
 
-                ServiceSession *sess = s->new_session(cap);
+                ServiceSession *sess = s->new_session(args);
                 uf.delegate(CapRange(sess->portal_caps(), 1 << CPU::order(), Crd::OBJ_ALL));
                 uf.accept_delegates();
                 uf << E_SUCCESS << s->available();
@@ -54,10 +53,11 @@ void ServiceCPUHandler::portal(capsel_t) {
             break;
 
             case Service::CLOSE_SESSION: {
-                capsel_t sid = uf.get_translated().offset();
+                capsel_t ident = uf.get_translated(0).offset();
                 uf.finish_input();
 
-                s->destroy_session(sid);
+                ServiceSession *sess = s->get_session<ServiceSession>(ident);
+                s->remove_session(sess);
                 uf << E_SUCCESS;
             }
             break;
@@ -68,7 +68,6 @@ void ServiceCPUHandler::portal(capsel_t) {
         }
     }
     catch(const Exception& e) {
-        Syscalls::revoke(uf.delegation_window(), true);
         uf.clear();
         uf << e;
     }

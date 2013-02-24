@@ -194,7 +194,7 @@ public:
      *
      * @param service the service name
      */
-    explicit KeyboardSession(const char *service)
+    explicit KeyboardSession(const String &service)
         : PtClientSession(service), _ds(DS_SIZE, DataSpaceDesc::ANONYMOUS, DataSpaceDesc::RW), _sm(0),
           _consumer(_ds, _sm, true) {
         share();

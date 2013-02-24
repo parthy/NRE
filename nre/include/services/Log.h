@@ -32,7 +32,7 @@ public:
      *
      * @param service the service name
      */
-    explicit LogSession(const char *service) : PtClientSession(service) {
+    explicit LogSession(const String &service) : PtClientSession(service) {
     }
 
     /**

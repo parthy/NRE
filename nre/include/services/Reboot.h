@@ -34,7 +34,7 @@ public:
      *
      * @param service the service name
      */
-    explicit RebootSession(const char *service) : PtClientSession(service) {
+    explicit RebootSession(const String &service) : PtClientSession(service) {
     }
 
     /**

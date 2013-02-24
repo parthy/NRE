@@ -30,15 +30,23 @@ namespace nre {
 ChildManager::ChildManager()
     : _child_count(), _childs(),
       _portal_caps(CapSelSpace::get().allocate(MAX_CHILDS * per_child_caps(), per_child_caps())),
-      _dsm(), _registry(), _sm(), _switchsm(), _slotsm(), _regsm(0), _diesm(0), _ecs() {
+      _dsm(), _registry(), _sm(), _switchsm(), _slotsm(), _regsm(0), _diesm(0), _ecs(), _srvecs() {
     _ecs = new LocalThread *[CPU::count()];
+    _srvecs = new LocalThread *[CPU::count()];
     for(auto it = CPU::begin(); it != CPU::end(); ++it) {
         _ecs[it->log_id()] = LocalThread::create(it->log_id());
         _ecs[it->log_id()]->set_tls(Thread::TLS_PARAM, this);
 
+        _srvecs[it->log_id()] = LocalThread::create(it->log_id());
+        _srvecs[it->log_id()]->set_tls(Thread::TLS_PARAM, this);
+
         UtcbFrameRef defuf(_ecs[it->log_id()]->utcb());
         defuf.accept_translates();
         defuf.accept_delegates(0);
+
+        UtcbFrameRef srvuf(_srvecs[it->log_id()]->utcb());
+        srvuf.accept_translates();
+        srvuf.accept_delegates(Math::next_pow2_shift<size_t>(CPU::count()));
     }
 }
 
@@ -48,9 +56,12 @@ ChildManager::~ChildManager() {
         if(c)
             RCU::invalidate(c);
     }
-    for(size_t i = 0; i < CPU::count(); ++i)
+    for(size_t i = 0; i < CPU::count(); ++i) {
         delete _ecs[i];
+        delete _srvecs[i];
+    }
     delete[] _ecs;
+    delete[] _srvecs;
     CapSelSpace::get().free(MAX_CHILDS * per_child_caps());
     RCU::gc(true);
 }
@@ -189,20 +200,6 @@ Child::id_type ChildManager::load(uintptr_t addr, size_t size, const ChildConfig
     capsel_t pts = _portal_caps + idx * per_child_caps();
     Child *c = new Child(this, pts, config.cmdline());
     try {
-        // give the child its own local threads for the service portals. this is required because
-        // we want to call a portal at a service with that and we don't trust the service. so, by
-        // using per-child-portals the service can hurt the child but not us or other childs. and
-        // the child that uses the service needs to trust him anyway.
-        c->_srvecs = new LocalThread *[CPU::count()];
-        for(auto it = CPU::begin(); it != CPU::end(); ++it) {
-            c->_srvecs[it->log_id()] = LocalThread::create(it->log_id());
-            c->_srvecs[it->log_id()]->set_tls(Thread::TLS_PARAM, this);
-
-            UtcbFrameRef srvuf(c->_srvecs[it->log_id()]->utcb());
-            srvuf.accept_translates();
-            srvuf.accept_delegates(Math::next_pow2_shift<size_t>(CPU::count()));
-        }
-
         // we have to create the portals first to be able to delegate them to the new Pd
         c->_ptcount = CPU::count() * (ARRAY_SIZE(exc) + Portals::COUNT - 1);
         c->_pts = new Pt *[c->_ptcount];
@@ -221,7 +218,7 @@ Child::id_type ChildManager::load(uintptr_t addr, size_t size, const ChildConfig
                                         Mtd(Mtd::RSP));
             c->_pts[idx + i++] = new Pt(_ecs[cpu], pts + off + CapSelSpace::SRV_INIT, Portals::init_caps,
                                         Mtd(0));
-            c->_pts[idx + i++] = new Pt(c->_srvecs[cpu], pts + off + CapSelSpace::SRV_SERVICE,
+            c->_pts[idx + i++] = new Pt(_srvecs[cpu], pts + off + CapSelSpace::SRV_SERVICE,
                                         Portals::service, Mtd(0));
             c->_pts[idx + i++] = new Pt(_ecs[cpu], pts + off + CapSelSpace::SRV_IO, Portals::io, Mtd(0));
             c->_pts[idx + i++] = new Pt(_ecs[cpu], pts + off + CapSelSpace::SRV_SC, Portals::sc, Mtd(0));
@@ -231,6 +228,7 @@ Child::id_type ChildManager::load(uintptr_t addr, size_t size, const ChildConfig
         }
         // now create Pd and pass portals
         c->_pd = new Pd(Crd(pts, Math::next_pow2_shift(per_child_caps()), Crd::OBJ_ALL));
+        c->_pd->set_name(config.cmdline().str());
         c->_entry = elf->e_entry;
         c->_main = config.entry();
 
@@ -375,75 +373,15 @@ void ChildManager::Portals::init_caps(capsel_t pid) {
     }
 }
 
-Child::ServiceCaps *ChildManager::open_session(Child *c, capsel_t cap, const String &name,
-                                               const ServiceRegistry::Service *service) {
-    // TODO this is really ugly. we have to give up the RCU lock during the portal call because
-    // we can't trust the service that we're calling. so, to prevent that the RCU lock is down
-    // for ever, release it during that time
-    Child::id_type id = c->id();
-    RCU::lock().up();
-
-    Child::ServiceCaps *res;
-    if(!service)
-        res = new Child::ServiceCaps(name.str(), cap, &CPU::current().srv_pt(), false);
-    else {
-        Pt *opensess = new Pt(service->pts() + CPU::current().log_id());
-        res = new Child::ServiceCaps(name.str(), cap, opensess, true);
-    }
-
-    RCU::lock().down();
-    // check if the child is still there; otherwise we don't want to store that session and
-    // want to release <caps>.
-    if(get(id) == c) {
-        ScopedLock<UserSm> guard(&c->_sm);
-        c->_sessions.append(res);
-    }
-    // if the client is gone, ensure that nobody can use <c> anymore by throwing an exception
-    else {
-        delete res;
-        VTHROW(ChildException, E_NOT_FOUND, "Client died during session open at " << name);
-    }
-    return res;
-}
-
-void ChildManager::close_session(Child *c, capsel_t portals) {
-    // take care that we don't grab a lock during the portal call
-    SList<Child::ServiceCaps>::iterator it;
-    {
-        ScopedLock<UserSm> guard(&c->_sm);
-        for(it = c->_sessions.begin(); it != c->_sessions.end(); ++it) {
-            if(it->caps() == portals)
-                break;
-        }
-        if(it == c->_sessions.end())
-            VTHROW(ChildException, E_NOT_FOUND, "Unable to find session with portals " << portals);
-        c->_sessions.remove(&*it);
-    }
-
-    // same as above: don't hold the RCU lock during portal call
-    Child::id_type id = c->id();
-    RCU::lock().up();
-
-    // close the session and free the list item
-    delete it->session();
-    delete &*it;
-
-    RCU::lock().down();
-    if(get(id) != c)
-        throw ChildException(E_NOT_FOUND, "Client died during session close");
-}
-
 void ChildManager::Portals::service(capsel_t pid) {
     ChildManager *cm = Thread::current()->get_tls<ChildManager*>(Thread::TLS_PARAM);
     UtcbFrameRef uf;
     try {
-        ScopedLock<RCULock> guard(&RCU::lock());
+        // TODO ScopedLock<RCULock> guard(&RCU::lock());
         Child *c = cm->get_child(pid);
         String name;
         Service::Command cmd;
-        uf >> cmd;
-        if(cmd != Service::CLIENT_DIED)
-            uf >> name;
+        uf >> cmd >> name;
         switch(cmd) {
             case Service::REGISTER: {
                 BitField<Hip::MAX_CPUS> available;
@@ -469,38 +407,25 @@ void ChildManager::Portals::service(capsel_t pid) {
             break;
 
             case Service::OPEN_SESSION: {
-                capsel_t cap = uf.get_delegated(0).offset();
+                String args;
+                uf >> args;
                 uf.finish_input();
 
-                LOG(SERVICES, "Child '" << c->cmdline() << "' opens session at " << name << "\n");
-                const ServiceRegistry::Service *s = cm->get_service(name);
-                Child::ServiceCaps *sess = cm->open_session(c, cap, name, s);
+                LOG(SERVICES, "Child '" << c->cmdline() << "' opens session at "
+                                        << name << " (" << args << ")\n");
+                const ClientSession *sess = c->open_session(name, args, cm->registry().find(name));
 
-                uf.accept_delegates();
-                uf.delegate(CapRange(sess->caps(), CPU::count(), Crd::OBJ_ALL));
+                uf.delegate(CapRange(sess->caps(), 1 << CPU::order(), Crd::OBJ_ALL));
                 uf << E_SUCCESS << sess->available();
             }
             break;
 
             case Service::CLOSE_SESSION: {
-                capsel_t portals = uf.get_translated(0).offset();
+                capsel_t ident = uf.get_translated(0).offset();
                 uf.finish_input();
 
                 LOG(SERVICES, "Child '" << c->cmdline() << "' closes session at " << name << "\n");
-
-                // ask service to close it
-                cm->close_session(c, portals);
-
-                uf << E_SUCCESS;
-            }
-            break;
-
-            case Service::CLIENT_DIED: {
-                uf.finish_input();
-
-                LOG(SERVICES, "Child '" << c->cmdline() << "' says clients died\n");
-                cm->notify_services();
-
+                c->close_session(ident);
                 uf << E_SUCCESS;
             }
             break;
@@ -511,17 +436,6 @@ void ChildManager::Portals::service(capsel_t pid) {
         uf.clear();
         uf << e;
     }
-}
-
-capsel_t ChildManager::open_session_at_parent(const String &name, BitField<Hip::MAX_CPUS> &available) {
-    UtcbFrame uf;
-    ScopedCapSels caps(1 << CPU::order(), 1 << CPU::order());
-    uf.delegation_window(Crd(caps.get(), CPU::order(), Crd::OBJ_ALL));
-    uf << Service::OPEN_SESSION << name;
-    CPU::current().srv_pt().call(uf);
-    uf.check_reply();
-    uf >> available;
-    return caps.release();
 }
 
 void ChildManager::Portals::gsi(capsel_t pid) {
@@ -911,7 +825,8 @@ void ChildManager::unmap(UtcbFrameRef &uf, Child *c) {
         c->reglist().remove_by_addr(desc.virt());
     }
     else {
-        LOG(DATASPACES, "Child '" << c->cmdline() << "' destroys " << sel << ": " << desc << "\n");
+        LOG(DATASPACES, "Child '" << c->cmdline() << "' destroys "
+                                  << fmt(sel, "#x") << ": " << desc << "\n");
         // destroy (decrease refs) the ds
         _dsm.release(desc, sel);
         c->reglist().remove(sel);
@@ -1138,8 +1053,8 @@ void ChildManager::kill_child(capsel_t pid, UtcbExcFrameRef &uf, ExitType type, 
                 DataSpaceDesc desc = c->reglist().remove_by_addr(stack, &sel);
                 _dsm.release(desc, sel);
             }
-            if(utcb)
-                c->reglist().remove_by_addr(utcb);
+            //if(utcb)
+            //   c->reglist().remove_by_addr(utcb);
         }
 
         if(exitcode != 0) {
@@ -1185,7 +1100,6 @@ void ChildManager::destroy_child(capsel_t pid) {
     // (we need new portals at the same place, so that they have to be revoked first)
     RCU::gc(true);
     _child_count--;
-    notify_services();
     Sync::memory_barrier();
     _diesm.up();
 }

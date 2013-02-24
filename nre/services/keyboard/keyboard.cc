@@ -34,9 +34,9 @@ enum {
 template<class T>
 class KeyboardSessionData : public ServiceSession {
 public:
-    explicit KeyboardSessionData(Service *s, size_t id, capsel_t cap, capsel_t caps,
+    explicit KeyboardSessionData(Service *s, size_t id, capsel_t caps,
                                  Pt::portal_func func)
-        : ServiceSession(s, id, cap, caps, func), _prod(), _ds(), _sm() {
+        : ServiceSession(s, id, caps, func), _prod(), _ds(), _sm() {
     }
     virtual ~KeyboardSessionData() {
         delete _ds;
@@ -88,9 +88,9 @@ public:
     }
 
 private:
-    virtual ServiceSession *create_session(size_t id, capsel_t cap, capsel_t caps,
+    virtual ServiceSession *create_session(size_t id, const String &, capsel_t caps,
                                            Pt::portal_func func) {
-        return new KeyboardSessionData<T>(this, id, cap, caps, func);
+        return new KeyboardSessionData<T>(this, id, caps, func);
     }
 };
 
