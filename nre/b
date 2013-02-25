@@ -194,6 +194,7 @@ if $dobuild; then
         # copy to build-dir; convert to elf32-binary when using x86_64, because grub can't load elf64-binaries.
         if [ "$NRE_TARGET" = "x86_64" ]; then
             $crossdir/bin/$cross-objcopy -O elf32-i386 hypervisor-$NRE_TARGET $root/$build/bin/apps/hypervisor
+            cp hypervisor-$NRE_TARGET $root/$build/bin/apps/hypervisor-elf64
         else
             cp hypervisor-$NRE_TARGET $root/$build/bin/apps/hypervisor
         fi
