@@ -52,6 +52,21 @@ public:
      */
     explicit Pd(Crd crd = Crd(0), Pd *pd = Pd::current());
 
+    /**
+     * Gives the kernel the name of this Pd for debugging purposes
+     *
+     * @param name the name
+     */
+    void set_name(const char *name) {
+        const char *begin = name;
+        while(*name && *name != ' ') {
+            if(*name == '/')
+                begin = name + 1;
+            name++;
+        }
+        Syscalls::pd_ctrl(sel(), begin);
+    }
+
 private:
     Pd(const Pd&);
     Pd& operator=(const Pd&);

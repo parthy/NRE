@@ -29,6 +29,7 @@ enum ErrorCode {
     E_FTR,
     E_CPU,
     E_DEV,
+    E_DEADLOCK,
 
     // NUL error codes
     E_ASSERT,

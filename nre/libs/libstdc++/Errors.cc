@@ -29,6 +29,7 @@ static const char *msgs[] = {
     /* E_FTR */           "Invalid Feature",
     /* E_CPU */           "Invalid CPU Number",
     /* E_DEV */           "Invalid Device ID",
+    /* E_DEADLOCK */      "Communication Deadlock",
     /* E_ASSERT */        "Assert failed",
     /* E_NO_CAP_SELS */   "No free capability selectors",
     /* E_UTCB_UNTYPED */  "No more untyped items in UTCB",

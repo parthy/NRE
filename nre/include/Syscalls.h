@@ -45,6 +45,7 @@ class Syscalls {
         SM_CTRL,
         ASSIGN_PCI,
         ASSIGN_GSI,
+        PD_CTRL,
         CREATE_EC_GLOBAL = CREATE_EC | FLAG0,
         REVOKE_MYSELF  = REVOKE | FLAG0,
     };
@@ -157,6 +158,17 @@ public:
      */
     static void create_sm(capsel_t sm, unsigned initial, capsel_t dstpd) {
         SyscallABI::syscall(sm << 8 | CREATE_SM, dstpd, initial);
+    }
+
+    /**
+     * Gives the kernel the name of this Pd for debugging purposes
+     *
+     * @param pd the capability selector for the Pd
+     * @param name the name
+     * @throws SyscallException if the system-call failed (result != E_SUCCESS)
+     */
+    static void pd_ctrl(capsel_t pd, const char *name) {
+        SyscallABI::syscall(pd << 8 | PD_CTRL, reinterpret_cast<word_t>(name));
     }
 
     /**
