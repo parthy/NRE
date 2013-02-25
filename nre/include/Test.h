@@ -52,7 +52,9 @@ struct TestCase {
 #define WVPASSLT(a, b) \
     ({ nre::test::WvTest __t(__FILE__, __LINE__, # a " < " # b); __t.check_lt((a), (b)); })
 #define WVPASSGE(a, b) \
-    ({ nre::test::WvTest __t(__FILE__, __LINE__, # a " >= " # b); __t.check_le((b), (a)); })
+    ({ nre::test::WvTest __t(__FILE__, __LINE__, # a " <= " # b); __t.check_le((b), (a)); })
+#define WVPASSLE(a, b) \
+    ({ nre::test::WvTest __t(__FILE__, __LINE__, # a " <= " # b); __t.check_le((a), (b)); })
 #define WVFAIL(cond)    \
     ({ nre::test::WvTest __t(__FILE__, __LINE__, "NOT(" # cond ")"); !__t.check(!(cond)); })
 #define WVFAILEQ(a, b)  \

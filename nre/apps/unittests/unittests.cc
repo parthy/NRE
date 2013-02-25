@@ -33,6 +33,7 @@
 #include "tests/MemOps.h"
 #include "tests/ThreadsTest.h"
 #include "tests/OStreamTest.h"
+#include "tests/SListTreapTest.h"
 
 using namespace nre;
 using namespace nre::test;
@@ -61,6 +62,10 @@ const TestCase testcases[] = {
     treaptest_revorder,
     treaptest_randorder,
     treaptest_perf,
+    slisttreaptest_inorder,
+    slisttreaptest_revorder,
+    slisttreaptest_randorder,
+    slisttreaptest_perf,
     ostream_writef,
     ostream_strops,
 };
