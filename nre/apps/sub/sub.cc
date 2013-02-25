@@ -26,7 +26,7 @@ int main() {
     ChildManager *cm = new ChildManager();
     for(auto mem = Hip::get().mem_begin(); mem != Hip::get().mem_end(); ++mem) {
         if(strstr(mem->cmdline(), "bin/apps/test") != nullptr) {
-            ChildConfig cfg(0, mem->cmdline());
+            ChildConfig cfg(0, "subtest");
             DataSpace ds(mem->size, DataSpaceDesc::ANONYMOUS, DataSpaceDesc::R, mem->addr);
             cm->load(ds.virt(), mem->size, cfg);
             break;
