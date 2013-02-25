@@ -211,7 +211,7 @@ public:
      * Removes the given item from the list. This works in linear time.
      * Does NOT expect that the item is in the list!
      *
-     * @param e the list item
+     * @param e the list item (doesn't have to be a valid pointer)
      * @return true if the item has been found and removed
      */
     bool remove(T *e) {

@@ -200,7 +200,7 @@ timevalue_t HostTimer::handle_expired_timers(PerCpu *per_cpu, timevalue_t now) {
     return per_cpu->abstimeouts.timeout();
 }
 
-void HostTimer::portal_per_cpu(capsel_t) {
+void HostTimer::portal_per_cpu(void*) {
     HostTimer *ht = Thread::current()->get_tls<HostTimer*>(Thread::TLS_PARAM);
     cpu_t cpu = CPU::current().log_id();
     PerCpu *per_cpu = ht->_per_cpu[cpu];

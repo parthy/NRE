@@ -181,7 +181,7 @@ public:
     /**
      * End-of-recursion service portal
      */
-    PORTAL static void portal_dataspace(capsel_t);
+    PORTAL static void portal_dataspace(void*);
 
 private:
     static bool can_map(uintptr_t phys, size_t size, uint &flags);

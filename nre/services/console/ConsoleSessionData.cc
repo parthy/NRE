@@ -14,7 +14,6 @@
  * General Public License version 2 for more details.
  */
 
-#include <RCU.h>
 #include <cstring>
 
 #include "ConsoleSessionData.h"
@@ -33,12 +32,9 @@ void ConsoleSessionData::create(DataSpace *in_ds, DataSpace *out_ds, Sm *sm) {
     _srv->session_ready(this);
 }
 
-void ConsoleSessionData::portal(capsel_t pid) {
+void ConsoleSessionData::portal(ConsoleSessionData *sess) {
     UtcbFrameRef uf;
     try {
-        ScopedLock<RCULock> guard(&RCU::lock());
-        ConsoleService *srv = Thread::current()->get_tls<ConsoleService*>(Thread::TLS_PARAM);
-        ConsoleSessionData *sess = srv->get_session<ConsoleSessionData>(pid);
         Console::Command cmd;
         uf >> cmd;
         switch(cmd) {

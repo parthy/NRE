@@ -21,6 +21,7 @@
 #include <stream/Serial.h>
 #include <util/ScopedLock.h>
 #include <util/ScopedPtr.h>
+#include <Logging.h>
 
 namespace nre {
 
@@ -32,7 +33,7 @@ ServiceCPUHandler::ServiceCPUHandler(Service* s, capsel_t pt, cpu_t cpu)
     ecuf.accept_translates();
 }
 
-void ServiceCPUHandler::portal(capsel_t) {
+void ServiceCPUHandler::portal(void*) {
     UtcbFrameRef uf;
     Service *s = Thread::current()->get_tls<Service*>(Thread::TLS_PARAM);
     try {
@@ -46,6 +47,7 @@ void ServiceCPUHandler::portal(capsel_t) {
                 uf.finish_input();
 
                 ServiceSession *sess = s->new_session(args);
+                LOG(SERVICES, "Created session id=" << sess->id() << " args='" << args << "'\n");
                 uf.delegate(CapRange(sess->portal_caps(), 1 << CPU::order(), Crd::OBJ_ALL));
                 uf.accept_delegates();
                 uf << E_SUCCESS << s->available();
@@ -56,8 +58,9 @@ void ServiceCPUHandler::portal(capsel_t) {
                 capsel_t ident = uf.get_translated(0).offset();
                 uf.finish_input();
 
-                ServiceSession *sess = s->get_session<ServiceSession>(ident);
-                s->remove_session(sess);
+                Reference<ServiceSession> sess = s->get_session_by_ident(ident - CPU::current().log_id());
+                LOG(SERVICES, "Destroying session with id=" << sess->id() << "\n");
+                s->remove_session(&*sess);
                 uf << E_SUCCESS;
             }
             break;

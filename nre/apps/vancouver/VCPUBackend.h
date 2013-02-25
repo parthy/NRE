@@ -39,7 +39,7 @@ class VCPUBackend : public nre::SListItem {
     };
     struct Portal {
         capsel_t offset;
-        nre::Pt::portal_func func;
+        PORTAL void (*func)(capsel_t);
         uint mtd;
     };
 

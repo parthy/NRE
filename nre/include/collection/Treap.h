@@ -91,7 +91,7 @@ public:
      * @param key the key
      * @return the node or nullptr if not found
      */
-    T *find(typename T::key_t key) {
+    T *find(typename T::key_t key) const {
         for(node_t *p = _root; p != nullptr; ) {
             if(p->_key == key)
                 return static_cast<T*>(p);
@@ -146,7 +146,7 @@ public:
     /**
      * Removes the given node from the tree.
      *
-     * @param node the node to remove
+     * @param node the node to remove (DOES have to be a valid pointer)
      */
     void remove(node_t *node) {
         node_t **p;

@@ -57,7 +57,7 @@ private:
     ServiceCPUHandler(const ServiceCPUHandler&);
     ServiceCPUHandler& operator=(const ServiceCPUHandler&);
 
-    PORTAL static void portal(capsel_t pid);
+    PORTAL static void portal(void*);
 
     Service *_s;
     LocalThread *_session_ec;

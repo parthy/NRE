@@ -29,15 +29,23 @@ class ConsoleSessionData;
 
 class ConsoleService : public nre::Service {
 public:
-    typedef nre::DList<ConsoleSessionData>::iterator iterator;
+    struct SessionReference : public nre::DListItem {
+        nre::Reference<ConsoleSessionData> sess;
+    };
+
+    typedef nre::DList<SessionReference>::iterator iterator;
 
     ConsoleService(const char *name, uint modifier);
 
-    ConsoleSessionData *active() {
+    SessionReference *active() {
         if(_concyc[_console] == nullptr)
             return nullptr;
         iterator it = _concyc[_console]->current();
         return it != _cons[_console]->end() ? &*it : nullptr;
+    }
+    bool is_active(ConsoleSessionData *sess) {
+        SessionReference *ref = active();
+        return ref && &*ref->sess == sess;
     }
 
     void remove(ConsoleSessionData *sess);
@@ -57,15 +65,14 @@ public:
     bool handle_keyevent(const nre::Keyboard::Packet &pk);
 
 private:
-    virtual nre::ServiceSession *create_session(size_t id, const nre::String &args, capsel_t caps,
-                                                nre::Pt::portal_func func);
+    virtual nre::ServiceSession *create_session(size_t id, const nre::String &args, portal_func func);
     void create_dummy(uint page, const nre::String &title);
     void switch_to(size_t console);
 
     nre::RebootSession _reboot;
     Screen *_screen;
     size_t _console;
-    nre::DList<ConsoleSessionData> *_cons[nre::Console::SUBCONS];
+    nre::DList<SessionReference> *_cons[nre::Console::SUBCONS];
     nre::Cycler<iterator> *_concyc[nre::Console::SUBCONS];
     nre::UserSm _sm;
     ViewSwitcher _switcher;

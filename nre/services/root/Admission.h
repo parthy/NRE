@@ -126,7 +126,7 @@ public:
     /**
      * End-of-recursion service portal
      */
-    PORTAL static void portal_sc(capsel_t pid);
+    PORTAL static void portal_sc(void*);
 
 private:
     Admission();

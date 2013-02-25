@@ -136,7 +136,7 @@ private:
     bool per_cpu_client_request(PerCpu *per_cpu, ClientData *data);
     timevalue_t handle_expired_timers(PerCpu *per_cpu, timevalue_t now);
 
-    PORTAL static void portal_per_cpu(capsel_t pid);
+    PORTAL static void portal_per_cpu(void*);
     NORETURN static void xcpu_wakeup_thread(void *);
     NORETURN static void gsi_thread(void *);
 

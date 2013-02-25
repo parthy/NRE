@@ -27,7 +27,7 @@ using namespace nre;
 static HostACPI *hostacpi;
 static HostATARE *hostatare;
 
-PORTAL static void portal_acpi(capsel_t) {
+PORTAL static void portal_acpi(void*) {
     UtcbFrameRef uf;
     try {
         ACPI::Command cmd;

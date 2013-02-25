@@ -134,7 +134,7 @@ void Hypervisor::unmap_string(const char *str) {
     }
 }
 
-void Hypervisor::portal_map(capsel_t) {
+void Hypervisor::portal_map(void*) {
     UtcbFrameRef uf;
     CapRange range;
     uf >> range;
@@ -142,7 +142,7 @@ void Hypervisor::portal_map(capsel_t) {
     uf.delegate(range, UtcbFrame::FROM_HV);
 }
 
-void Hypervisor::portal_gsi(capsel_t) {
+void Hypervisor::portal_gsi(void*) {
     UtcbFrameRef uf;
     try {
         uint gsi;
@@ -181,7 +181,7 @@ void Hypervisor::portal_gsi(capsel_t) {
     }
 }
 
-void Hypervisor::portal_io(capsel_t) {
+void Hypervisor::portal_io(void*) {
     UtcbFrameRef uf;
     try {
         Ports::port_t base;

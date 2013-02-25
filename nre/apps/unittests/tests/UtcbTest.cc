@@ -24,7 +24,7 @@
 using namespace nre;
 using namespace nre::test;
 
-PORTAL static void portal_test(capsel_t);
+PORTAL static void portal_test(void*);
 static void test_nesting();
 static void test_perf();
 
@@ -36,7 +36,7 @@ const TestCase utcbperf = {
 };
 static const uint tries = 100000;
 
-static void portal_test(capsel_t) {
+static void portal_test(void*) {
     UtcbFrameRef uf;
     try {
         int a, b, c;

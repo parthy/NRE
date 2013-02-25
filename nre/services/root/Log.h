@@ -83,7 +83,7 @@ private:
     // actually meant for the childmanager in the root-ds-manager. thus, we don't find the dataspace.
     // to prevent the whole problem, we use a portal which works fine in this case, since its
     // not performance critical anyway. so, sending a long string doesn't really hurt.
-    PORTAL static void portal(capsel_t pid);
+    PORTAL static void portal(nre::ServiceSession *sess);
 
     nre::Ports _ports;
     nre::UserSm _sm;

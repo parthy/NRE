@@ -27,9 +27,9 @@
 #include <subsystem/ChildMemory.h>
 #include <subsystem/ServiceRegistry.h>
 #include <collection/SList.h>
+#include <collection/SListTreap.h>
 #include <region/PortManager.h>
 #include <bits/BitField.h>
-#include <RCU.h>
 #include <String.h>
 
 namespace nre {
@@ -44,7 +44,7 @@ OStream &operator<<(OStream &os, const Child &c);
  * Represents a running child task. This is used by the ChildManager to keep track of all its
  * children. You can't create instances of it but only get instances from the ChildManager.
  */
-class Child : public RCUObject {
+class Child : public SListTreapNode<size_t>, public RefCounted {
     friend class ChildManager;
     friend OStream & operator<<(OStream &os, const Child &c);
 
@@ -90,7 +90,7 @@ class Child : public RCUObject {
     };
 
 public:
-    typedef capsel_t id_type;
+    typedef size_t id_type;
 
     /**
      * @return the id of this child
@@ -203,23 +203,18 @@ public:
 
 private:
     explicit Child(ChildManager *cm, id_type id, const String &cmdline)
-        : RCUObject(), _cm(cm), _id(id), _cmdline(cmdline), _started(), _pd(), _ec(),
-          _pts(), _ptcount(), _regs(), _io(PortManager::USED), _scs(), _gsis(), _sessions(),
-          _gsi_caps(CapSelSpace::get().allocate(Hip::MAX_GSIS)), _gsi_next(), _entry(),
+        : SListTreapNode<size_t>(id), RefCounted(), _cm(cm), _id(id), _cmdline(cmdline), _started(),
+          _pd(), _ec(), _pts(), _ptcount(), _regs(), _io(PortManager::USED), _scs(), _gsis(),
+          _sessions(), _gsi_caps(CapSelSpace::get().allocate(Hip::MAX_GSIS)), _gsi_next(), _entry(),
           _main(), _stack(), _utcb(), _hip(), _last_fault_addr(), _last_fault_cpu(), _sm() {
     }
-    virtual ~Child() {
+public:
+    virtual ~Child();
+
+private:
+    void destroy() {
         for(size_t i = 0; i < _ptcount; ++i)
             delete _pts[i];
-        delete[] _pts;
-        delete _ec;
-        delete _pd;
-        release_gsis();
-        release_ports();
-        release_scs();
-        release_regs();
-        release_sessions();
-        CapSelSpace::get().free(_gsi_caps, Hip::MAX_GSIS);
     }
 
     void add_sc(const String &name, cpu_t cpu, capsel_t sc) {

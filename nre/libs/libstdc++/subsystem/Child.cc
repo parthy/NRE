@@ -22,6 +22,21 @@
 
 namespace nre {
 
+Child::~Child() {
+    delete[] _pts;
+    delete _ec;
+    delete _pd;
+    release_gsis();
+    release_ports();
+    release_scs();
+    release_regs();
+    release_sessions();
+    CapSelSpace::get().free(_gsi_caps, Hip::MAX_GSIS);
+    Atomic::add(&_cm->_child_count, -1);
+    Sync::memory_fence();
+    _cm->_diesm.up();
+}
+
 const ClientSession *Child::open_session(const String &name, const String &args,
                                          const ServiceRegistry::Service *s) {
     ScopedLock<UserSm> guard(&_sm);

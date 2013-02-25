@@ -19,6 +19,7 @@
 #include <kobj/Pt.h>
 #include <kobj/LocalThread.h>
 #include <ipc/Service.h>
+#include <collection/SListTreap.h>
 #include <subsystem/ServiceRegistry.h>
 #include <subsystem/ChildConfig.h>
 #include <subsystem/Child.h>
@@ -66,15 +67,65 @@ class ChildManager {
     public:
         static const size_t COUNT   = 9;
 
-        PORTAL static void startup(capsel_t pid);
-        PORTAL static void init_caps(capsel_t pid);
-        PORTAL static void service(capsel_t pid);
-        PORTAL static void io(capsel_t pid);
-        PORTAL static void sc(capsel_t pid);
-        PORTAL static void gsi(capsel_t pid);
-        PORTAL static void dataspace(capsel_t pid);
-        PORTAL static void pf(capsel_t pid);
-        PORTAL static void exception(capsel_t pid);
+        PORTAL static void startup(Child *child);
+        PORTAL static void init_caps(Child *child);
+        PORTAL static void service(Child *child);
+        PORTAL static void io(Child *child);
+        PORTAL static void sc(Child *child);
+        PORTAL static void gsi(Child *child);
+        PORTAL static void dataspace(Child *child);
+        PORTAL static void ex_de(Child *child);
+        PORTAL static void ex_db(Child *child);
+        PORTAL static void ex_bp(Child *child);
+        PORTAL static void ex_of(Child *child);
+        PORTAL static void ex_br(Child *child);
+        PORTAL static void ex_ud(Child *child);
+        PORTAL static void ex_nm(Child *child);
+        PORTAL static void ex_df(Child *child);
+        PORTAL static void ex_ts(Child *child);
+        PORTAL static void ex_np(Child *child);
+        PORTAL static void ex_ss(Child *child);
+        PORTAL static void ex_gp(Child *child);
+        PORTAL static void ex_pf(Child *child);
+        PORTAL static void ex_mf(Child *child);
+        PORTAL static void ex_ac(Child *child);
+        PORTAL static void ex_mc(Child *child);
+        PORTAL static void ex_xm(Child *child);
+    };
+
+    class ChildDeleter : public ThreadedDeleter<Child> {
+    public:
+        explicit ChildDeleter(ChildManager *cm)
+            : ThreadedDeleter<Child>("child"), _cm(cm) {
+        }
+
+    private:
+        virtual void call() {
+            // call an empty portal with the child-Ecs
+            UtcbFrame uf;
+            Pt(_cm->_ecs[CPU::current().log_id()], cleanup_portal).call(uf);
+            Pt(_cm->_srvecs[CPU::current().log_id()], cleanup_portal).call(uf);
+        }
+
+        virtual void invalidate(Child *obj) {
+            obj->destroy();
+        }
+        virtual void destroy(Child *obj) {
+            Child *o = nullptr;
+            {
+                ScopedLock<UserSm> guard(&_cm->_sm);
+                if(obj->rem_ref())
+                    o = obj;
+            }
+            // don't hold the lock during the delete (-> deadlock)
+            if(o)
+                delete o;
+        }
+
+        PORTAL static void cleanup_portal(void*) {
+        }
+
+        ChildManager *_cm;
     };
 
     /**
@@ -87,10 +138,11 @@ class ChildManager {
     };
 
 public:
+    typedef typename SListTreap<Child>::const_iterator iterator;
+
     /**
      * Some settings
      */
-    static const size_t MAX_CHILDS          = 32;
     static const size_t MAX_CMDLINE_LEN     = 256;
     static const size_t MAX_MODAUX_LEN      = ExecEnv::PAGE_SIZE;
 
@@ -133,26 +185,40 @@ public:
     }
 
     /**
-     * Returns the child with given id. Note that the childs are managed by RCU. So, you should
-     * use a RCULock to mark the read access and just use this method once at the beginning and
-     * store it in a variable. If its none-zero, you can use it without trouble.
+     * The up-/down-implementation to allow ScopedLock<ChildManager>. This is required if you want
+     * to iterate over all childs to prevent that the list is manipulated during that time.
+     */
+    void up() {
+        _sm.up();
+    }
+    void down() {
+        _sm.down();
+    }
+
+    /**
+     * Returns a reference to the child with given id. As long as you hold the reference, the
+     * object won't be destroyed.
      *
      * @param id the child id
-     * @return the child with given id or nullptr if not existing
+     * @return the child with given id (reference might be invalid)
      */
-    const Child *get(Child::id_type id) const {
-        return get_at((id - _portal_caps) / per_child_caps());
+    Reference<const Child> get(Child::id_type id) const {
+        ScopedLock<UserSm> guard(&_sm);
+        return Reference<const Child>(_childs.find(id));
+    }
+
+    /**
+     * @return the iterator-beginning to walk over all sessions (note that you need to use an
+     *  ScopedLock<ChildManager> to prevent that sessions are destroyed while iterating over them)
+     */
+    iterator begin() const {
+        return _childs.cbegin();
     }
     /**
-     * Returns the child at given index. Note that the childs are managed by RCU. So, you should
-     * use a RCULock to mark the read access and just use this method once at the beginning and
-     * store it in a variable. If its none-zero, you can use it without trouble.
-     *
-     * @param idx the index of the child
-     * @return the child at given index or nullptr if not existing
+     * @return the iterator-end
      */
-    const Child *get_at(size_t idx) const {
-        return rcu_dereference(_childs[idx]);
+    iterator end() const {
+        return _childs.cend();
     }
 
     /**
@@ -161,7 +227,8 @@ public:
      * @param id the child id
      */
     void kill(Child::id_type id) {
-        destroy_child(id);
+        Reference<const Child> child = get(id);
+        destroy_child(const_cast<Child*>(&*child));
     }
 
     /**
@@ -192,33 +259,15 @@ public:
     }
 
 private:
-    size_t free_slot() const {
-        ScopedLock<UserSm> guard(&_slotsm);
-        for(size_t i = 0; i < MAX_CHILDS; ++i) {
-            if(_childs[i] == nullptr)
-                return i;
-        }
-        throw ChildException(E_CAPACITY, "No free child slots");
-    }
-
-    Child *get_child(Child::id_type id) {
-        return get_child_at((id - _portal_caps) / per_child_caps());
-    }
-    Child *get_child_at(size_t idx) {
-        Child *c = rcu_dereference(_childs[idx]);
-        if(!c)
-            VTHROW(ChildException, E_NOT_FOUND, "Child with idx " << idx << " does not exist");
-        return c;
-    }
     static size_t per_child_caps() {
         return Math::next_pow2(Hip::get().service_caps() * CPU::count());
     }
-    cpu_t get_cpu(capsel_t pid) const {
-        size_t off = (pid - _portal_caps) % per_child_caps();
-        return off / Hip::get().service_caps();
-    }
-    uint get_vector(capsel_t pid) const {
-        return (pid - _portal_caps) % Hip::get().service_caps();
+
+    Reference<Child> get_first() {
+        ScopedLock<UserSm> guard(&_sm);
+        if(_childs.length() > 0)
+            return Reference<Child>(&*_childs.begin());
+        return Reference<Child>();
     }
 
     const ServiceRegistry::Service *get_service(const String &name) {
@@ -240,9 +289,10 @@ private:
         _registry.unreg(c, name);
     }
 
-    void term_child(capsel_t pid, UtcbExcFrameRef &uf);
-    void kill_child(capsel_t pid, UtcbExcFrameRef &uf, ExitType type, int exitcode);
-    void destroy_child(capsel_t pid);
+    void exception_kill(Child *c, int vector);
+    void term_child(Child *c, int vector, UtcbExcFrameRef &uf);
+    void kill_child(Child *c, int vector, UtcbExcFrameRef &uf, ExitType type, int exitcode);
+    void destroy_child(Child *c, bool wait = false);
 
     static void prepare_stack(Child *c, uintptr_t &sp, uintptr_t csp);
     void build_hip(Child *c, const ChildConfig &config);
@@ -254,12 +304,13 @@ private:
     ChildManager(const ChildManager&);
     ChildManager& operator=(const ChildManager&);
 
+    size_t _next_id;
     size_t _child_count;
-    Child *_childs[MAX_CHILDS];
-    capsel_t _portal_caps;
+    SListTreap<Child> _childs;
+    ChildDeleter _deleter;
     DataSpaceManager<DataSpace> _dsm;
     ServiceRegistry _registry;
-    UserSm _sm;
+    mutable UserSm _sm;
     UserSm _switchsm;
     mutable UserSm _slotsm;
     Sm _regsm;

@@ -26,8 +26,8 @@
 
 class VMMngServiceSession : public nre::ServiceSession {
 public:
-    explicit VMMngServiceSession(nre::Service *s, size_t id, capsel_t caps, nre::Pt::portal_func func)
-        : ServiceSession(s, id, caps, func), _vm(), _ds(), _sm(), _prod() {
+    explicit VMMngServiceSession(nre::Service *s, size_t id, portal_func func)
+        : ServiceSession(s, id, func), _vm(), _ds(), _sm(), _prod() {
     }
     virtual ~VMMngServiceSession() {
         delete _ds;
@@ -61,7 +61,7 @@ private:
 
 class VMMngService : public nre::Service {
     explicit VMMngService(const char *name)
-        : Service(name, nre::CPUSet(nre::CPUSet::ALL), portal) {
+        : Service(name, nre::CPUSet(nre::CPUSet::ALL), reinterpret_cast<portal_func>(portal)) {
         // we want to accept one dataspaces and pd-translations
         for(auto it = nre::CPU::begin(); it != nre::CPU::end(); ++it) {
             nre::LocalThread *ec = get_thread(it->log_id());
@@ -77,12 +77,11 @@ public:
     }
 
 private:
-    virtual VMMngServiceSession *create_session(size_t id, const nre::String &, capsel_t caps,
-                                                nre::Pt::portal_func func) {
-        return new VMMngServiceSession(this, id, caps, func);
+    virtual VMMngServiceSession *create_session(size_t id, const nre::String &, portal_func func) {
+        return new VMMngServiceSession(this, id, func);
     }
 
-    PORTAL static void portal(capsel_t pid);
+    PORTAL static void portal(VMMngServiceSession *sess);
 
     static VMMngService *_inst;
 };

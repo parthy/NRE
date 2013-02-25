@@ -36,9 +36,8 @@ static StorageService *srv;
 
 class StorageServiceSession : public ServiceSession {
 public:
-    explicit StorageServiceSession(Service *s, size_t id, capsel_t caps,
-                                   Pt::portal_func func, size_t drive)
-        : ServiceSession(s, id, caps, func), _ctrlds(), _sm(), _prod(), _datads(), _drive(drive) {
+    explicit StorageServiceSession(Service *s, size_t id, portal_func func, size_t drive)
+        : ServiceSession(s, id, func), _ctrlds(), _sm(), _prod(), _datads(), _drive(drive) {
     }
     virtual ~StorageServiceSession() {
         delete _ctrlds;
@@ -88,7 +87,7 @@ private:
 class StorageService : public Service {
 public:
     explicit StorageService(const char *name)
-        : Service(name, CPUSet(CPUSet::ALL), portal) {
+        : Service(name, CPUSet(CPUSet::ALL), reinterpret_cast<portal_func>(portal)) {
         // we want to accept two dataspaces
         for(auto it = CPU::begin(); it != CPU::end(); ++it) {
             LocalThread *ec = get_thread(it->log_id());
@@ -98,8 +97,7 @@ public:
     }
 
 private:
-    virtual ServiceSession *create_session(size_t id, const String &args, capsel_t caps,
-                                           Pt::portal_func func) {
+    virtual ServiceSession *create_session(size_t id, const String &args, portal_func func) {
         IStringStream is(args);
         size_t drive;
         is >> drive;
@@ -108,15 +106,13 @@ private:
             VTHROW(Exception, E_ARGS_INVALID,
                    "Controller/drive (" << ctrl << "," << drive << ") does not exist");
         }
-        return new StorageServiceSession(this, id, caps, func, drive);
+        return new StorageServiceSession(this, id, func, drive);
     }
 
-    PORTAL static void portal(capsel_t pid);
+    PORTAL static void portal(StorageServiceSession *sess);
 };
 
-void StorageService::portal(capsel_t pid) {
-    ScopedLock<RCULock> guard(&RCU::lock());
-    StorageServiceSession *sess = srv->get_session<StorageServiceSession>(pid);
+void StorageService::portal(StorageServiceSession *sess) {
     UtcbFrameRef uf;
     try {
         Storage::Command cmd;

@@ -43,21 +43,20 @@ static PingpongService *srv;
 
 class PingpongSession : public ServiceSession {
 public:
-    explicit PingpongSession(Service *s, size_t id, capsel_t caps, Pt::portal_func func)
-        : ServiceSession(s, id, caps, func) {
+    explicit PingpongSession(Service *s, size_t id, portal_func func)
+        : ServiceSession(s, id, func) {
     }
     virtual ~PingpongSession();
 };
 
 class PingpongService : public Service {
 public:
-    explicit PingpongService(Pt::portal_func func) : Service("pingpong", CPUSet(CPUSet::ALL), func) {
+    explicit PingpongService(portal_func func) : Service("pingpong", CPUSet(CPUSet::ALL), func) {
     }
 
 private:
-    virtual ServiceSession *create_session(size_t id, const String&, capsel_t caps,
-                                           Pt::portal_func func) {
-        return new PingpongSession(this, id, caps, func);
+    virtual ServiceSession *create_session(size_t id, const String&, portal_func func) {
+        return new PingpongSession(this, id, func);
     }
 };
 
@@ -65,10 +64,10 @@ PingpongSession::~PingpongSession() {
     srv->stop();
 }
 
-PORTAL static void portal_empty(capsel_t) {
+PORTAL static void portal_empty(void*) {
 }
 
-PORTAL static void portal_data(capsel_t) {
+PORTAL static void portal_data(void*) {
     UtcbFrameRef uf;
     try {
         uint a, b, c;
@@ -83,7 +82,7 @@ PORTAL static void portal_data(capsel_t) {
 
 static int pingpong_server(int, char *argv[]) {
     uintptr_t addr = IStringStream::read_from<uintptr_t>(argv[1]);
-    srv = new PingpongService(reinterpret_cast<Pt::portal_func>(addr));
+    srv = new PingpongService(reinterpret_cast<Service::portal_func>(addr));
     srv->start();
     delete srv;
     return 0;
@@ -129,7 +128,7 @@ static int pingpong_client(int, char *argv[]) {
 static void test_pingpong() {
     ChildManager *mng = new ChildManager();
     Hip::mem_iterator self = Hip::get().mem_begin();
-    Pt::portal_func funcs[] = {portal_empty, portal_data};
+    Service::portal_func funcs[] = {portal_empty, portal_data};
     client_func clientfuncs[] = {client_empty, client_data};
     const char *names[] = {"empty", "data"};
     for(size_t i = 0; i < ARRAY_SIZE(funcs); ++i) {

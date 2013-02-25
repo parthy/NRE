@@ -20,10 +20,8 @@ using namespace nre;
 
 VMMngService *VMMngService::_inst = nullptr;
 
-void VMMngService::portal(capsel_t pid) {
-    nre::ScopedLock<nre::RCULock> guard(&nre::RCU::lock());
+void VMMngService::portal(VMMngServiceSession *sess) {
     nre::UtcbFrameRef uf;
-    VMMngServiceSession *sess = _inst->get_session<VMMngServiceSession>(pid);
     try {
         capsel_t dssel = uf.get_delegated(0).offset();
         capsel_t smsel = uf.get_delegated(0).offset();

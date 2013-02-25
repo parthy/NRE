@@ -32,6 +32,7 @@ using namespace nre;
 
 static const uint CUR_ROW_COLOR = 0x70;
 
+static UserSm sm;
 static size_t vmidx = 0;
 static ConsoleSession cons("console", 0, "VMManager");
 static SList<VMConfig> configs;
@@ -39,7 +40,6 @@ static ChildManager cm;
 static Cycler<CPU::iterator> cpucyc(CPU::begin(), CPU::end());
 
 static void refresh_console() {
-    static UserSm sm;
     ScopedLock<UserSm> guard(&sm);
     ConsoleStream cs(cons, 0);
     cons.clear(0);
@@ -51,14 +51,13 @@ static void refresh_console() {
     cs << "\n";
 
     cs << "Running VMs:\n";
-    ScopedLock<RCULock> rcuguard(&RCU::lock());
     RunningVM *vm;
     if(vmidx >= RunningVMList::get().count())
         vmidx = RunningVMList::get().count() - 1;
     for(size_t i = 0; (vm = RunningVMList::get().get(i)) != nullptr; ++i) {
-        const Child *c = cm.get(vm->id());
+        Reference<const Child> c = cm.get(vm->id());
         // detect crashed VMs
-        if(!c) {
+        if(!c.valid()) {
             RunningVMList::get().remove(vm);
             i--;
             continue;
@@ -103,7 +102,7 @@ static void input_thread(void*) {
             break;
 
             case Keyboard::VK_R: {
-                ScopedLock<RCULock> guard(&RCU::lock());
+                ScopedLock<UserSm> guard(&sm);
                 RunningVM *vm = vml.get(vmidx);
                 if(vm && (pk->flags & Keyboard::RELEASE))
                     vm->execute(VMManager::RESET);
@@ -128,7 +127,7 @@ static void input_thread(void*) {
                 if(pk->flags & Keyboard::RELEASE) {
                     Child::id_type id = ObjCap::INVALID;
                     {
-                        ScopedLock<RCULock> guard(&RCU::lock());
+                        ScopedLock<UserSm> guard(&sm);
                         RunningVM *vm = vml.get(vmidx);
                         if(vm) {
                             id = vm->id();

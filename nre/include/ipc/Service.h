@@ -25,6 +25,7 @@
 #include <ipc/ServiceSession.h>
 #include <mem/DataSpace.h>
 #include <utcb/UtcbFrame.h>
+#include <util/ThreadedDeleter.h>
 #include <util/ScopedPtr.h>
 #include <util/CPUSet.h>
 #include <util/Math.h>
@@ -34,9 +35,6 @@
 #include <CPU.h>
 
 namespace nre {
-
-template<class T>
-class SessionIterator;
 
 /**
  * The exception that is used for services
@@ -58,12 +56,38 @@ public:
  */
 class Service {
     friend class ServiceCPUHandler;
-    template<class T>
-    friend class SessionIterator;
+
+    class ServiceSessionDeleter : public ThreadedDeleter<ServiceSession> {
+    public:
+        explicit ServiceSessionDeleter(Service *s)
+            : ThreadedDeleter<ServiceSession>("session"), _s(s) {
+        }
+
+    private:
+        virtual void call() {
+            // call an empty portal with the session-Ec
+            UtcbFrame uf;
+            Pt(_s->get_thread(CPU::current().log_id()), cleanup_portal).call(uf);
+        }
+
+        virtual void invalidate(ServiceSession *obj) {
+            obj->destroy();
+        }
+        virtual void destroy(ServiceSession *obj) {
+            ScopedLock<UserSm> guard(&_s->_sm);
+            if(obj->rem_ref())
+                delete obj;
+        }
+
+        PORTAL static void cleanup_portal(void*) {
+        }
+
+        Service *_s;
+    };
 
 public:
-    static const uint MAX_SESSIONS_ORDER        =   6;
-    static const size_t MAX_SESSIONS            =   1 << MAX_SESSIONS_ORDER;
+    typedef ServiceSession::portal_func portal_func;
+    typedef typename SListTreap<ServiceSession>::iterator iterator;
 
     /**
      * The commands the parent provides for working with services
@@ -84,10 +108,9 @@ public:
      * @param cpus the CPUs on which you want to provide the service
      * @param portal the portal-function to provide
      */
-    explicit Service(const char *name, const CPUSet &cpus, Pt::portal_func portal)
-        : _regcaps(CapSelSpace::get().allocate(1 << CPU::order(), 1 << CPU::order())),
-          _caps(CapSelSpace::get().allocate(MAX_SESSIONS << CPU::order(), MAX_SESSIONS << CPU::order())),
-          _sm(), _cleanup_sm(0), _stop_sm(0), _stop(false), _cleaning(0), _name(name), _func(portal),
+    explicit Service(const char *name, const CPUSet &cpus, portal_func portal)
+        : _next_id(0), _regcaps(CapSelSpace::get().allocate(1 << CPU::order(), 1 << CPU::order())),
+          _sm(), _stop_sm(0), _stop(false), _name(name), _func(portal), _deleter(this),
           _insts(new ServiceCPUHandler *[CPU::count()]), _reg_cpus(cpus.get()), _sessions() {
         for(size_t i = 0; i < CPU::count(); ++i) {
             if(_reg_cpus.is_set(i))
@@ -101,15 +124,14 @@ public:
      */
     virtual ~Service() {
         unreg();
-        for(size_t i = 0; i < MAX_SESSIONS; ++i) {
-            ServiceSession *sess = rcu_dereference(_sessions[i]);
-            if(sess)
-                remove_session(sess);
+        {
+            Reference<ServiceSession> sess;
+            while((sess = get_first()).valid())
+                remove_session(&*sess, true);
         }
         for(size_t i = 0; i < CPU::count(); ++i)
             delete _insts[i];
         delete[] _insts;
-        CapSelSpace::get().free(_caps, MAX_SESSIONS << CPU::order());
         CapSelSpace::get().free(_regcaps, 1 << CPU::order());
     }
 
@@ -147,14 +169,8 @@ public:
     /**
      * @return the portal-function
      */
-    Pt::portal_func portal() const {
+    portal_func portal() const {
         return _func;
-    }
-    /**
-     * @return the capabilities used for all session-portals
-     */
-    capsel_t caps() const {
-        return _caps;
     }
     /**
      * @return the bitmask that specified on which CPUs it is available
@@ -164,37 +180,45 @@ public:
     }
 
     /**
-     * @return the iterator-beginning to walk over all sessions (note that you need to use an
-     *  RCULock to prevent that sessions are destroyed while iterating over them)
+     * The up-/down-implementation to allow ScopedLock<Service>. This is required if you want to
+     * iterate over all sessions to prevent that the list is manipulated during that time.
      */
-    template<class T>
-    SessionIterator<T> sessions_begin();
+    void up() {
+        _sm.up();
+    }
+    void down() {
+        _sm.down();
+    }
+
+    /**
+     * @return the iterator-beginning to walk over all sessions (note that you need to use an
+     *  ScopedLock<Service> to prevent that sessions are destroyed while iterating over them)
+     */
+    iterator sessions_begin() {
+        return _sessions.begin();
+    }
     /**
      * @return the iterator-end
      */
-    template<class T>
-    SessionIterator<T> sessions_end();
+    iterator sessions_end() {
+        return _sessions.end();
+    }
 
     /**
-     * @param pid the portal-selector
-     * @return the session
-     * @throws ServiceException if the session does not exist
-     */
-    template<class T>
-    T *get_session(capsel_t pid) {
-        return get_session_by_id<T>((pid - _caps) >> CPU::order());
-    }
-    /**
+     * Returns a reference to the session with given id. As long as you hold the reference, the
+     * session won't be destroyed.
+     *
      * @param id the session-id
-     * @return the session
+     * @return a reference to the session
      * @throws ServiceException if the session does not exist
      */
     template<class T>
-    T *get_session_by_id(size_t id) {
-        T *sess = static_cast<T*>(rcu_dereference(_sessions[id]));
+    Reference<T> get_session(size_t id) {
+        ScopedLock<UserSm> guard(&_sm);
+        T *sess = static_cast<T*>(_sessions.find(id));
         if(!sess)
-            VTHROW(ServiceException, E_ARGS_INVALID, "Session " << id << " does not exist");
-        return sess;
+            VTHROW(ServiceException, E_ARGS_INVALID, "Session " << id << " doesn't exist");
+        return Reference<T>(sess);
     }
 
     /**
@@ -216,26 +240,34 @@ protected:
     ServiceSession *new_session(const String &args);
 
 private:
+    Reference<ServiceSession> get_first() {
+        ScopedLock<UserSm> guard(&_sm);
+        if(_sessions.length() > 0)
+            return Reference<ServiceSession>(&*_sessions.begin());
+        return Reference<ServiceSession>();
+    }
+    Reference<ServiceSession> get_session_by_ident(capsel_t ident) {
+        ScopedLock<UserSm> guard(&_sm);
+        for(auto it = _sessions.begin(); it != _sessions.end(); ++it) {
+            if(it->portal_caps() == ident)
+                return Reference<ServiceSession>(&*it);
+        }
+        VTHROW(ServiceException, E_ARGS_INVALID, "Session with ident " << ident << " doesn't exist");
+    }
+
     /**
      * May be overwritten to create an inherited class from ServiceSession.
      *
      * @param id the session-id
      * @param args the arguments for the session
-     * @param pts the capabilities
      * @param func the portal-function
      * @return the session-object
      */
-    virtual ServiceSession *create_session(size_t id, const String&, capsel_t pts, Pt::portal_func func) {
-        return new ServiceSession(this, id, pts, func);
+    virtual ServiceSession *create_session(size_t id, const String&, portal_func func) {
+        return new ServiceSession(this, id, func);
     }
-    /**
-     * Is called after a session has been created and put into the corresponding slot. May be
-     * overwritten to perform some action.
-     *
-     * @param id the session-id
-     */
-    virtual void created_session(UNUSED size_t id) {
-    }
+
+    void remove_session(ServiceSession *sess, bool wait = false);
 
     void unreg() {
         UtcbFrame uf;
@@ -244,118 +276,20 @@ private:
         uf.check_reply();
     }
 
-    static void cleanup_thread(void*);
-    void add_session(ServiceSession *sess);
-    void remove_session(ServiceSession *sess);
-    void do_remove_session(ServiceSession *sess);
-    void destroy_session(capsel_t pid);
-
     Service(const Service&);
     Service& operator=(const Service&);
 
+    size_t _next_id;
     capsel_t _regcaps;
-    capsel_t _caps;
     UserSm _sm;
-    Sm _cleanup_sm;
     Sm _stop_sm;
     bool _stop;
-    word_t _cleaning;
     const char *_name;
-    Pt::portal_func _func;
+    portal_func _func;
+    ServiceSessionDeleter _deleter;
     ServiceCPUHandler **_insts;
     BitField<Hip::MAX_CPUS> _reg_cpus;
-    ServiceSession *_sessions[MAX_SESSIONS];
+    SListTreap<ServiceSession> _sessions;
 };
-
-/**
- * The iterator to walk forwards or backwards over all sessions. We need that, because we have to
- * skip unused slots. Note that the iterator assumes that no sessions are destroyed while being
- * used. Sessions may be added or removed in the meanwhile.
- */
-template<class T>
-class SessionIterator {
-    friend class Service;
-
-public:
-    /**
-     * Creates an iterator that starts at given position
-     *
-     * @param s the service
-     * @param pos the start-position (index into session-array)
-     */
-    explicit SessionIterator(Service *s, ssize_t pos = 0) : _s(s), _pos(pos), _last(next()) {
-    }
-
-    T & operator*() const {
-        return *_last;
-    }
-    T *operator->() const {
-        return &operator*();
-    }
-    SessionIterator & operator++() {
-        if(_pos < static_cast<ssize_t>(Service::MAX_SESSIONS) - 1) {
-            _pos++;
-            _last = next();
-        }
-        return *this;
-    }
-    SessionIterator operator++(int) {
-        SessionIterator<T> tmp(*this);
-        operator++();
-        return tmp;
-    }
-    SessionIterator & operator--() {
-        if(_pos > 0) {
-            _pos--;
-            _last = prev();
-        }
-        return *this;
-    }
-    SessionIterator operator--(int) {
-        SessionIterator<T> tmp(*this);
-        operator++();
-        return tmp;
-    }
-    bool operator==(const SessionIterator<T>& rhs) const {
-        return _pos == rhs._pos;
-    }
-    bool operator!=(const SessionIterator<T>& rhs) const {
-        return _pos != rhs._pos;
-    }
-
-private:
-    T *next() {
-        while(_pos < static_cast<ssize_t>(Service::MAX_SESSIONS)) {
-            T *t = static_cast<T*>(rcu_dereference(_s->_sessions[_pos]));
-            if(t)
-                return t;
-            _pos++;
-        }
-        return nullptr;
-    }
-    T *prev() {
-        while(_pos >= 0) {
-            T *t = static_cast<T*>(rcu_dereference(_s->_sessions[_pos]));
-            if(t)
-                return t;
-            _pos--;
-        }
-        return nullptr;
-    }
-
-    Service* _s;
-    ssize_t _pos;
-    T *_last;
-};
-
-template<class T>
-SessionIterator<T> Service::sessions_begin() {
-    return SessionIterator<T>(this);
-}
-
-template<class T>
-SessionIterator<T> Service::sessions_end() {
-    return SessionIterator<T>(this, MAX_SESSIONS);
-}
 
 }

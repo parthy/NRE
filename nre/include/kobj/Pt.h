@@ -30,7 +30,7 @@ namespace nre {
  */
 class Pt : public ObjCap {
 public:
-    typedef ExecEnv::portal_func portal_func;
+    typedef PORTAL void (*portal_func)(void*);
 
     /**
      * Attaches a portal object to the given portal-capability-selector. The destructor will neither
@@ -53,9 +53,7 @@ public:
      */
     explicit Pt(LocalThread *ec, capsel_t pt, portal_func func, Mtd mtd = Mtd())
         : ObjCap(pt, KEEP_SEL_BIT) {
-        Syscalls::create_pt(pt, ec->sel(), reinterpret_cast<uintptr_t>(func), mtd,
-                            Pd::current()->sel());
-        Syscalls::pt_ctrl(pt, pt);
+        create(ec, pt, reinterpret_cast<uintptr_t>(func), mtd);
     }
 
     /**
@@ -68,9 +66,7 @@ public:
      */
     explicit Pt(LocalThread *ec, portal_func func, Mtd mtd = Mtd()) : ObjCap() {
         ScopedCapSels pt;
-        Syscalls::create_pt(pt.get(), ec->sel(), reinterpret_cast<uintptr_t>(func), mtd,
-                            Pd::current()->sel());
-        Syscalls::pt_ctrl(pt.get(), pt.get());
+        create(ec, pt.get(), reinterpret_cast<uintptr_t>(func), mtd);
         sel(pt.release());
     }
 
@@ -88,6 +84,23 @@ public:
         Syscalls::call(sel());
         uf._upos = 0;
         uf._tpos = 0;
+    }
+
+    /**
+     * Sets the id of this portal which you'll receive as first parameter on every subsequent
+     * portal-call.
+     *
+     * @param id the id (has to fit in a word_t)
+     */
+    template<typename T>
+    void set_id(T id) {
+        static_assert(sizeof(T) <= sizeof(word_t), "Wrong portal argument type");
+        Syscalls::pt_ctrl(sel(), reinterpret_cast<word_t>(id));
+    }
+
+private:
+    void create(LocalThread *ec, capsel_t pt, uintptr_t func, Mtd mtd) {
+        Syscalls::create_pt(pt, ec->sel(), func, mtd, Pd::current()->sel());
     }
 };
 

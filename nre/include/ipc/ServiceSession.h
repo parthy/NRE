@@ -17,7 +17,9 @@
 #pragma once
 
 #include <kobj/Pt.h>
-#include <RCU.h>
+#include <collection/SListTreap.h>
+#include <util/Reference.h>
+#include <util/ThreadedDeleter.h>
 #include <CPU.h>
 
 namespace nre {
@@ -26,29 +28,30 @@ class Service;
 
 /**
  * The server-part of a session. This way the service can manage per-session-data. That is,
- * it can distinguish between clients. Note that sessions are tracked by RCU. So, whenever you
- * access a session (by Service::get_session, for example), make sure that you use a RCULock.
+ * it can distinguish between clients.
  */
-class ServiceSession : public RCUObject {
+class ServiceSession : public SListTreapNode<size_t>, public RefCounted {
     friend class Service;
     friend class ServiceCPUHandler;
 
 public:
+    typedef PORTAL void (*portal_func)(void*);
+
     /**
      * Constructor
      *
      * @param s the service-instance
      * @param id the id of this session
-     * @param pts the portal selectors
      * @param func the portal function
      *  Otherwise, portals are created
      */
-    explicit ServiceSession(Service *s, size_t id, capsel_t pts, Pt::portal_func func);
+    explicit ServiceSession(Service *s, size_t id, portal_func func);
     /**
      * Destroyes this session
      */
     virtual ~ServiceSession() {
         delete[] _pts;
+        CapSelSpace::get().free(_caps, 1 << CPU::order());
     }
 
     /**

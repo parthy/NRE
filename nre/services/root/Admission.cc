@@ -40,7 +40,7 @@ void Admission::init() {
     }
 }
 
-void Admission::portal_sc(capsel_t) {
+void Admission::portal_sc(void*) {
     UtcbFrameRef uf;
     try {
         Sc::Command cmd;

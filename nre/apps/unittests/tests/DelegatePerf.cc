@@ -25,7 +25,7 @@
 using namespace nre;
 using namespace nre::test;
 
-PORTAL static void portal_test(capsel_t);
+PORTAL static void portal_test(void*);
 static void test_delegate();
 
 const TestCase delegateperf = {
@@ -34,7 +34,7 @@ const TestCase delegateperf = {
 
 static const size_t tries = 1000;
 
-static void portal_test(capsel_t) {
+static void portal_test(void*) {
     UtcbFrameRef uf;
     uf.delegate(CapRange(0x100, 4, Crd::IO_ALL));
 }

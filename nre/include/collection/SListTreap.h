@@ -114,7 +114,7 @@ public:
      * @param key the key
      * @return the node or nullptr if not found
      */
-    T *find(typename T::key_t key) {
+    T *find(typename T::key_t key) const {
         return _tree.find(key);
     }
 
@@ -132,11 +132,14 @@ public:
     /**
      * Removes the given node from the tree.
      *
-     * @param node the node to remove
+     * @param node the node to remove (doesn't have to be a valid pointer)
+     * @return true if it has been removed
      */
-    void remove(T *node) {
-        _list.remove(node);
-        _tree.remove(node);
+    bool remove(T *node) {
+        bool res = _list.remove(node);
+        if(res)
+            _tree.remove(node);
+        return res;
     }
 
 private:

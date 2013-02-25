@@ -56,10 +56,9 @@ void ViewSwitcher::switch_thread(void*) {
     while(1) {
         // are we finished?
         if(until && clock.source_time() >= until) {
-            ScopedLock<RCULock> guard(&RCU::lock());
             LOG(CONSOLE, "Giving " << sessid << " direct access\n");
             try {
-                ConsoleSessionData *sess = vs->_srv->get_session_by_id<ConsoleSessionData>(sessid);
+                Reference<ConsoleSessionData> sess = vs->_srv->get_session<ConsoleSessionData>(sessid);
                 // finally swap to that session. i.e. give him direct screen access
                 sess->to_front();
             }
@@ -76,9 +75,8 @@ void ViewSwitcher::switch_thread(void*) {
             LOG(CONSOLE, "Got switch " << cmd->oldsessid << " to " << cmd->sessid << "\n");
             // if there is an old one, make a backup and detach him from screen
             if(cmd->oldsessid == sessid && until == 0) {
-                ScopedLock<RCULock> guard(&RCU::lock());
                 try {
-                    ConsoleSessionData *old = vs->_srv->get_session_by_id<ConsoleSessionData>(sessid);
+                    Reference<ConsoleSessionData> old = vs->_srv->get_session<ConsoleSessionData>(sessid);
                     old->to_back();
                 }
                 catch(const Exception &e) {
@@ -93,44 +91,41 @@ void ViewSwitcher::switch_thread(void*) {
             vs->_cons.next();
         }
 
-        {
-            ScopedLock<RCULock> guard(&RCU::lock());
-            try {
-                ConsoleSessionData *sess = vs->_srv->get_session_by_id<ConsoleSessionData>(sessid);
+        try {
+            Reference<ConsoleSessionData> sess = vs->_srv->get_session<ConsoleSessionData>(sessid);
 
-                // repaint all lines from the buffer except the first
-                uintptr_t start = vs->_srv->screen()->mem().virt();
-                if(sess->out_ds()) {
-                    memcpy(reinterpret_cast<void*>(start + sess->offset() + Screen::COLS * 2),
-                           reinterpret_cast<void*>(sess->out_ds()->virt() + sess->offset() +
-                                                   Screen::COLS * 2),
-                           Screen::PAGE_SIZE - Screen::COLS * 2);
-                }
-
-                if(!tag_done) {
-                    // write tag into buffer
-                    memset(_buffer, 0, sizeof(_buffer));
-                    OStringStream os(_buffer, sizeof(_buffer));
-                    os << "Console " << sess->console() << ": " << sess->title() << " (" <<
-                    sess->id() << ")";
-
-                    // write console tag
-                    char *screen = reinterpret_cast<char*>(start + sess->offset());
-                    char *s = _buffer;
-                    for(uint x = 0; x < Screen::COLS; ++x, ++s) {
-                        screen[x * 2] = *s ? *s : ' ';
-                        screen[x * 2 + 1] = COLOR;
-                    }
-                    sess->activate();
-                    tag_done = true;
-                }
+            // repaint all lines from the buffer except the first
+            uintptr_t start = vs->_srv->screen()->mem().virt();
+            if(sess->out_ds()) {
+                memcpy(reinterpret_cast<void*>(start + sess->offset() + Screen::COLS * 2),
+                       reinterpret_cast<void*>(sess->out_ds()->virt() + sess->offset() +
+                                               Screen::COLS * 2),
+                       Screen::PAGE_SIZE - Screen::COLS * 2);
             }
-            catch(const Exception &e) {
-                LOG(CONSOLE, e);
-                // if the session is dead, stop switching to it
-                until = 0;
-                continue;
+
+            if(!tag_done) {
+                // write tag into buffer
+                memset(_buffer, 0, sizeof(_buffer));
+                OStringStream os(_buffer, sizeof(_buffer));
+                os << "Console " << sess->console() << ": " << sess->title() << " (" <<
+                sess->id() << ")";
+
+                // write console tag
+                char *screen = reinterpret_cast<char*>(start + sess->offset());
+                char *s = _buffer;
+                for(uint x = 0; x < Screen::COLS; ++x, ++s) {
+                    screen[x * 2] = *s ? *s : ' ';
+                    screen[x * 2 + 1] = COLOR;
+                }
+                sess->activate();
+                tag_done = true;
             }
+        }
+        catch(const Exception &e) {
+            LOG(CONSOLE, e);
+            // if the session is dead, stop switching to it
+            until = 0;
+            continue;
         }
 
         // wait 25ms

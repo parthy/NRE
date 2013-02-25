@@ -120,13 +120,13 @@ public:
     /**
      * End-of-recursion service-portals
      */
-    PORTAL static void portal_gsi(capsel_t pid);
-    PORTAL static void portal_io(capsel_t pid);
+    PORTAL static void portal_gsi(void*);
+    PORTAL static void portal_io(void*);
 
 private:
     Hypervisor();
 
-    PORTAL static void portal_map(capsel_t pid);
+    PORTAL static void portal_map(void*);
 
     static uchar _stack[];
     static nre::Pt *_map_pts[];

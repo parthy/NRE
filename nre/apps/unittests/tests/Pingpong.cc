@@ -32,10 +32,10 @@ const TestCase pingpong = {
 
 static const uint tries = 10000;
 
-PORTAL static void portal_empty(capsel_t) {
+PORTAL static void portal_empty(void*) {
 }
 
-PORTAL static void portal_data(capsel_t) {
+PORTAL static void portal_data(void*) {
     UtcbFrameRef uf;
     try {
         uint a, b, c;

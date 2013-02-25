@@ -28,15 +28,14 @@ static void input_thread(void*) {
     KeyboardSession kb("keyboard");
     for(Keyboard::Packet *pk; (pk = kb.consumer().get()) != 0; kb.consumer().next()) {
         if(!srv->handle_keyevent(*pk)) {
-            ScopedLock<RCULock> guard(&RCU::lock());
-            ConsoleSessionData *sess = srv->active();
-            if(sess && sess->prod()) {
+            ConsoleService::SessionReference *sess = srv->active();
+            if(sess && sess->sess->prod()) {
                 Console::ReceivePacket rpk;
                 rpk.flags = pk->flags;
                 rpk.scancode = pk->scancode;
                 rpk.keycode = pk->keycode;
                 rpk.character = Keymap::translate(*pk);
-                sess->prod()->produce(rpk);
+                sess->sess->prod()->produce(rpk);
             }
         }
     }

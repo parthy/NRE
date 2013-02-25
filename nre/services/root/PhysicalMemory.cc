@@ -188,7 +188,7 @@ bool PhysicalMemory::can_map(uintptr_t phys, size_t size, uint &flags) {
     return true;
 }
 
-void PhysicalMemory::portal_dataspace(capsel_t) {
+void PhysicalMemory::portal_dataspace(void*) {
     UtcbFrameRef uf;
     try {
         capsel_t sel = 0;

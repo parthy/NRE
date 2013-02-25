@@ -19,14 +19,17 @@
 
 namespace nre {
 
-ServiceSession::ServiceSession(Service *s, size_t id, capsel_t pts, Pt::portal_func func)
-    : RCUObject(), _id(id), _caps(pts), _pts(new Pt *[CPU::count()]) {
+ServiceSession::ServiceSession(Service *s, size_t id, portal_func func)
+    : SListTreapNode<size_t>(id), RefCounted(), _id(id),
+      _caps(CapSelSpace::get().allocate(1 << CPU::order(), 1 << CPU::order())),
+      _pts(new Pt *[CPU::count()]) {
     for(uint i = 0; i < CPU::count(); ++i) {
         _pts[i] = nullptr;
         if(s->available().is_set(i)) {
             LocalThread *ec = s->get_thread(i);
             assert(ec != nullptr);
-            _pts[i] = new Pt(ec, pts + i, func);
+            _pts[i] = new Pt(ec, _caps + i, func);
+            _pts[i]->set_id(this);
         }
     }
 }

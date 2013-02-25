@@ -47,7 +47,7 @@ Log::Log() : BaseSerial(), _ports(PORT_BASE, 6), _sm(1), _ready(true) {
 }
 
 void Log::start() {
-    _srv = new Service("log", CPUSet(CPUSet::ALL), portal);
+    _srv = new Service("log", CPUSet(CPUSet::ALL), reinterpret_cast<Service::portal_func>(portal));
     _srv->start();
 }
 
@@ -62,9 +62,7 @@ void Log::write(uint sessid, const char *line, size_t len) {
     *this << "\e[0m\n";
 }
 
-void Log::portal(capsel_t pid) {
-    ScopedLock<RCULock> guard(&RCU::lock());
-    ServiceSession *sess = _srv->get_session<ServiceSession>(pid);
+void Log::portal(ServiceSession *sess) {
     UtcbFrameRef uf;
     try {
         String line;

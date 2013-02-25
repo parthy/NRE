@@ -34,7 +34,7 @@ static void try_reboot(const char *name) {
     }
 }
 
-PORTAL static void portal_reboot(capsel_t) {
+PORTAL static void portal_reboot(void*) {
     UtcbFrameRef uf;
 
     // first try acpi, which should work on most systems

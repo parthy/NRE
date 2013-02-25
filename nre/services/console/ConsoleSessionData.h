@@ -24,9 +24,9 @@
 
 class ConsoleSessionData : public nre::ServiceSession, public nre::DListItem {
 public:
-    ConsoleSessionData(ConsoleService *srv, size_t id, capsel_t caps, nre::Pt::portal_func func,
+    ConsoleSessionData(ConsoleService *srv, size_t id, portal_func func,
                        size_t con, const nre::String &title)
-        : ServiceSession(srv, id, caps, func), DListItem(), _has_screen(false), _console(con),
+        : ServiceSession(srv, id, func), DListItem(), _has_screen(false), _console(con),
           _title(title), _sm(), _in_ds(), _out_ds(), _in_sm(), _prod(), _regs(), _srv(srv) {
         _regs.offset = nre::Console::TEXT_OFF >> 1;
         _regs.mode = 0;
@@ -41,7 +41,7 @@ public:
     }
 
     virtual void invalidate() {
-        if(_srv->active() == this) {
+        if(_srv->is_active(this)) {
             // ensure that we don't have the screen; the session might be destroyed before the
             // viewswitcher can handle the switch and therefore, take away the screen, if necessary.
             to_back();
@@ -93,11 +93,11 @@ public:
     }
     void set_regs(const nre::Console::Register &regs) {
         _regs = regs;
-        if(_srv->active() == this)
+        if(_srv->is_active(this))
             _srv->screen()->set_regs(_regs);
     }
 
-    PORTAL static void portal(capsel_t pid);
+    PORTAL static void portal(ConsoleSessionData *sess);
 
 private:
     void swap() {

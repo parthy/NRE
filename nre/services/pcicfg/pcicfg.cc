@@ -34,7 +34,7 @@ static Config *find(BDF bdf, size_t offset) {
     VTHROW(Exception, E_NOT_FOUND, bdf << "+" << fmt(offset, "#x") << " not found");
 }
 
-PORTAL static void portal_pcicfg(capsel_t) {
+PORTAL static void portal_pcicfg(void*) {
     UtcbFrameRef uf;
     try {
         BDF bdf;

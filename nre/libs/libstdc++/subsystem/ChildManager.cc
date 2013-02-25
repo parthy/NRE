@@ -28,9 +28,8 @@
 namespace nre {
 
 ChildManager::ChildManager()
-    : _child_count(), _childs(),
-      _portal_caps(CapSelSpace::get().allocate(MAX_CHILDS * per_child_caps(), per_child_caps())),
-      _dsm(), _registry(), _sm(), _switchsm(), _slotsm(), _regsm(0), _diesm(0), _ecs(), _srvecs() {
+    : _next_id(0), _child_count(0), _childs(), _deleter(this), _dsm(), _registry(), _sm(),
+      _switchsm(), _slotsm(), _regsm(0), _diesm(0), _ecs(), _srvecs() {
     _ecs = new LocalThread *[CPU::count()];
     _srvecs = new LocalThread *[CPU::count()];
     for(auto it = CPU::begin(); it != CPU::end(); ++it) {
@@ -51,10 +50,10 @@ ChildManager::ChildManager()
 }
 
 ChildManager::~ChildManager() {
-    for(size_t i = 0; i < CPU::count(); ++i) {
-        Child *c = rcu_dereference(_childs[i]);
-        if(c)
-            RCU::invalidate(c);
+    {
+        Reference<Child> child;
+        while((child = get_first()).valid())
+            destroy_child(&*child, true);
     }
     for(size_t i = 0; i < CPU::count(); ++i) {
         delete _ecs[i];
@@ -62,8 +61,6 @@ ChildManager::~ChildManager() {
     }
     delete[] _ecs;
     delete[] _srvecs;
-    CapSelSpace::get().free(MAX_CHILDS * per_child_caps());
-    RCU::gc(true);
 }
 
 void ChildManager::prepare_stack(Child *c, uintptr_t &sp, uintptr_t csp) {
@@ -186,19 +183,32 @@ Child::id_type ChildManager::load(uintptr_t addr, size_t size, const ChildConfig
          elf->e_ident[2] == 'L' && elf->e_ident[3] == 'F'))
         throw ElfException(E_ELF_SIG, "No ELF signature");
 
-    static int exc[] = {
-        CapSelSpace::EV_DIVIDE, CapSelSpace::EV_DEBUG, CapSelSpace::EV_BREAKPOINT,
-        CapSelSpace::EV_OVERFLOW, CapSelSpace::EV_BOUNDRANGE, CapSelSpace::EV_UNDEFOP,
-        CapSelSpace::EV_NOMATHPROC, CapSelSpace::EV_DBLFAULT, CapSelSpace::EV_TSS,
-        CapSelSpace::EV_INVSEG, CapSelSpace::EV_STACK, CapSelSpace::EV_GENPROT,
-        CapSelSpace::EV_MATHFAULT, CapSelSpace::EV_ALIGNCHK, CapSelSpace::EV_MACHCHK,
-        CapSelSpace::EV_SIMD
+    static struct {
+        int no;
+        PORTAL void (*portal)(Child*);
+    } exc[] = {
+        {CapSelSpace::EV_DIVIDE, Portals::ex_de},
+        {CapSelSpace::EV_DEBUG, Portals::ex_db},
+        {CapSelSpace::EV_BREAKPOINT, Portals::ex_bp},
+        {CapSelSpace::EV_OVERFLOW, Portals::ex_of},
+        {CapSelSpace::EV_BOUNDRANGE, Portals::ex_br},
+        {CapSelSpace::EV_UNDEFOP, Portals::ex_ud},
+        {CapSelSpace::EV_NOMATHPROC, Portals::ex_nm},
+        {CapSelSpace::EV_DBLFAULT, Portals::ex_df},
+        {CapSelSpace::EV_TSS, Portals::ex_ts},
+        {CapSelSpace::EV_INVSEG, Portals::ex_np},
+        {CapSelSpace::EV_STACK, Portals::ex_ss},
+        {CapSelSpace::EV_GENPROT, Portals::ex_gp},
+        {CapSelSpace::EV_PAGEFAULT, Portals::ex_pf},
+        {CapSelSpace::EV_MATHFAULT, Portals::ex_mf},
+        {CapSelSpace::EV_ALIGNCHK, Portals::ex_ac},
+        {CapSelSpace::EV_MACHCHK, Portals::ex_mc},
+        {CapSelSpace::EV_SIMD, Portals::ex_xm},
     };
 
     // create child
-    size_t idx = free_slot();
-    capsel_t pts = _portal_caps + idx * per_child_caps();
-    Child *c = new Child(this, pts, config.cmdline());
+    capsel_t pts = CapSelSpace::get().allocate(per_child_caps(), per_child_caps());
+    Child *c = new Child(this, _next_id++, config.cmdline());
     try {
         // we have to create the portals first to be able to delegate them to the new Pd
         c->_ptcount = CPU::count() * (ARRAY_SIZE(exc) + Portals::COUNT - 1);
@@ -209,22 +219,33 @@ Child::id_type ChildManager::load(uintptr_t addr, size_t size, const ChildConfig
             size_t off = cpu * Hip::get().service_caps();
             size_t i = 0;
             for(; i < ARRAY_SIZE(exc); ++i) {
-                c->_pts[idx + i] = new Pt(_ecs[cpu], pts + off + exc[i], Portals::exception,
+                c->_pts[idx + i] = new Pt(_ecs[cpu], pts + off + exc[i].no,
+                                          reinterpret_cast<Pt::portal_func>(exc[i].portal),
                                           Mtd(Mtd::GPR_BSD | Mtd::QUAL | Mtd::RIP_LEN));
             }
-            c->_pts[idx + i++] = new Pt(_ecs[cpu], pts + off + CapSelSpace::EV_PAGEFAULT, Portals::pf,
-                                        Mtd(Mtd::GPR_BSD | Mtd::QUAL | Mtd::RIP_LEN));
-            c->_pts[idx + i++] = new Pt(_ecs[cpu], pts + off + CapSelSpace::EV_STARTUP, Portals::startup,
+            c->_pts[idx + i++] = new Pt(_ecs[cpu], pts + off + CapSelSpace::EV_STARTUP,
+                                        reinterpret_cast<Pt::portal_func>(Portals::startup),
                                         Mtd(Mtd::RSP));
-            c->_pts[idx + i++] = new Pt(_ecs[cpu], pts + off + CapSelSpace::SRV_INIT, Portals::init_caps,
+            c->_pts[idx + i++] = new Pt(_ecs[cpu], pts + off + CapSelSpace::SRV_INIT,
+                                        reinterpret_cast<Pt::portal_func>(Portals::init_caps),
                                         Mtd(0));
             c->_pts[idx + i++] = new Pt(_srvecs[cpu], pts + off + CapSelSpace::SRV_SERVICE,
-                                        Portals::service, Mtd(0));
-            c->_pts[idx + i++] = new Pt(_ecs[cpu], pts + off + CapSelSpace::SRV_IO, Portals::io, Mtd(0));
-            c->_pts[idx + i++] = new Pt(_ecs[cpu], pts + off + CapSelSpace::SRV_SC, Portals::sc, Mtd(0));
-            c->_pts[idx + i++] = new Pt(_ecs[cpu], pts + off + CapSelSpace::SRV_GSI, Portals::gsi, Mtd(0));
-            c->_pts[idx + i++] = new Pt(_ecs[cpu], pts + off + CapSelSpace::SRV_DS, Portals::dataspace,
+                                        reinterpret_cast<Pt::portal_func>(Portals::service),
                                         Mtd(0));
+            c->_pts[idx + i++] = new Pt(_ecs[cpu], pts + off + CapSelSpace::SRV_IO,
+                                        reinterpret_cast<Pt::portal_func>(Portals::io),
+                                        Mtd(0));
+            c->_pts[idx + i++] = new Pt(_ecs[cpu], pts + off + CapSelSpace::SRV_SC,
+                                        reinterpret_cast<Pt::portal_func>(Portals::sc),
+                                        Mtd(0));
+            c->_pts[idx + i++] = new Pt(_ecs[cpu], pts + off + CapSelSpace::SRV_GSI,
+                                        reinterpret_cast<Pt::portal_func>(Portals::gsi),
+                                        Mtd(0));
+            c->_pts[idx + i++] = new Pt(_ecs[cpu], pts + off + CapSelSpace::SRV_DS,
+                                        reinterpret_cast<Pt::portal_func>(Portals::dataspace),
+                                        Mtd(0));
+            while(i-- > 0)
+                c->_pts[idx + i]->set_id(c);
         }
         // now create Pd and pass portals
         c->_pd = new Pd(Crd(pts, Math::next_pow2_shift(per_child_caps()), Crd::OBJ_ALL));
@@ -281,17 +302,19 @@ Child::id_type ChildManager::load(uintptr_t addr, size_t size, const ChildConfig
         LOG(CHILD_CREATE, "Starting child '" << c->cmdline() << "'...\n");
         LOG(CHILD_CREATE, *c << "\n");
 
-        // start child; we have to put the child into the list before that
-        rcu_assign_pointer(_childs[idx], c);
+        // start child
         c->_ec->start(Qpd(), c->_pd);
     }
     catch(...) {
         delete c;
-        rcu_assign_pointer(_childs[idx], nullptr);
         throw;
     }
 
-    _child_count++;
+    {
+        ScopedLock<UserSm> guard(&_sm);
+        _childs.insert(c);
+    }
+    Atomic::add(&_child_count, +1);
 
     // wait until all services are registered
     if(config.waits() > 0) {
@@ -309,12 +332,9 @@ Child::id_type ChildManager::load(uintptr_t addr, size_t size, const ChildConfig
     return c->id();
 }
 
-void ChildManager::Portals::startup(capsel_t pid) {
-    ChildManager *cm = Thread::current()->get_tls<ChildManager*>(Thread::TLS_PARAM);
+void ChildManager::Portals::startup(Child *c) {
     UtcbExcFrameRef uf;
     try {
-        ScopedLock<RCULock> guard(&RCU::lock());
-        Child *c = cm->get_child(pid);
         if(c->_started) {
             uintptr_t stack = uf->rsp & ~(ExecEnv::PAGE_SIZE - 1);
             ChildMemory::DS *ds = c->reglist().find_by_addr(stack);
@@ -350,12 +370,9 @@ void ChildManager::Portals::startup(capsel_t pid) {
     }
 }
 
-void ChildManager::Portals::init_caps(capsel_t pid) {
-    ChildManager *cm = Thread::current()->get_tls<ChildManager*>(Thread::TLS_PARAM);
+void ChildManager::Portals::init_caps(Child *c) {
     UtcbFrameRef uf;
     try {
-        ScopedLock<RCULock> guard(&RCU::lock());
-        Child *c = cm->get_child(pid);
         // we can't give the child the cap for e.g. the Pd when creating the Pd. therefore the child
         // grabs them afterwards with this portal
         uf.finish_input();
@@ -373,12 +390,10 @@ void ChildManager::Portals::init_caps(capsel_t pid) {
     }
 }
 
-void ChildManager::Portals::service(capsel_t pid) {
+void ChildManager::Portals::service(Child *c) {
     ChildManager *cm = Thread::current()->get_tls<ChildManager*>(Thread::TLS_PARAM);
     UtcbFrameRef uf;
     try {
-        // TODO ScopedLock<RCULock> guard(&RCU::lock());
-        Child *c = cm->get_child(pid);
         String name;
         Service::Command cmd;
         uf >> cmd >> name;
@@ -438,12 +453,9 @@ void ChildManager::Portals::service(capsel_t pid) {
     }
 }
 
-void ChildManager::Portals::gsi(capsel_t pid) {
-    ChildManager *cm = Thread::current()->get_tls<ChildManager*>(Thread::TLS_PARAM);
+void ChildManager::Portals::gsi(Child *c) {
     UtcbFrameRef uf;
     try {
-        ScopedLock<RCULock> guard(&RCU::lock());
-        Child *c = cm->get_child(pid);
         uint gsi;
         void *pcicfg = nullptr;
         Gsi::Op op;
@@ -500,12 +512,9 @@ void ChildManager::Portals::gsi(capsel_t pid) {
     }
 }
 
-void ChildManager::Portals::io(capsel_t pid) {
-    ChildManager *cm = Thread::current()->get_tls<ChildManager*>(Thread::TLS_PARAM);
+void ChildManager::Portals::io(Child *c) {
     UtcbFrameRef uf;
     try {
-        ScopedLock<RCULock> guard(&RCU::lock());
-        Child *c = cm->get_child(pid);
         Ports::port_t base;
         uint count;
         Ports::Op op;
@@ -552,12 +561,10 @@ void ChildManager::Portals::io(capsel_t pid) {
     }
 }
 
-void ChildManager::Portals::sc(capsel_t pid) {
+void ChildManager::Portals::sc(Child *c) {
     ChildManager *cm = Thread::current()->get_tls<ChildManager*>(Thread::TLS_PARAM);
     UtcbFrameRef uf;
     try {
-        ScopedLock<RCULock> guard(&RCU::lock());
-        Child *c = cm->get_child(pid);
         Sc::Command cmd;
         uf >> cmd;
 
@@ -776,31 +783,32 @@ void ChildManager::switch_to(UtcbFrameRef &uf, Child *c) {
         }
 
         // now change the mapping for all other childs that have one of these dataspaces
-        for(size_t x = 0, i = 0; i < MAX_CHILDS && x < _child_count; ++i) {
-            Child *ch = rcu_dereference(_childs[i]);
-            if(ch == 0 || ch == c)
-                continue;
+        {
+            ScopedLock<UserSm> guard_childs(&_sm);
+            for(auto it = _childs.begin(); it != _childs.end(); ++it) {
+                if(&*it == c)
+                    continue;
 
-            ScopedLock<UserSm> guard_regs(&ch->_sm);
-            DataSpaceDesc dummy;
-            ChildMemory::DS *src, *dst;
-            src = ch->reglist().find(srcsel);
-            dst = ch->reglist().find(dstsel);
-            if(!src && !dst)
-                continue;
+                ScopedLock<UserSm> guard_regs(&it->_sm);
+                DataSpaceDesc dummy;
+                ChildMemory::DS *src, *dst;
+                src = it->reglist().find(srcsel);
+                dst = it->reglist().find(dstsel);
+                if(!src && !dst)
+                    continue;
 
-            // also reset the information here
-            ch->_last_fault_addr = 0;
-            ch->_last_fault_cpu = 0;
-            if(src) {
-                src->desc().origin(dstorg);
-                src->all_perms(0);
+                // also reset the information here
+                it->_last_fault_addr = 0;
+                it->_last_fault_cpu = 0;
+                if(src) {
+                    src->desc().origin(dstorg);
+                    src->all_perms(0);
+                }
+                if(dst) {
+                    dst->desc().origin(srcorg);
+                    src->all_perms(0);
+                }
             }
-            if(dst) {
-                dst->desc().origin(srcorg);
-                src->all_perms(0);
-            }
-            x++;
         }
 
         // now swap the origins also in the dataspace-manager (otherwise clients that join
@@ -834,13 +842,11 @@ void ChildManager::unmap(UtcbFrameRef &uf, Child *c) {
     uf << E_SUCCESS;
 }
 
-void ChildManager::Portals::dataspace(capsel_t pid) {
+void ChildManager::Portals::dataspace(Child *c) {
     ChildManager *cm = Thread::current()->get_tls<ChildManager*>(Thread::TLS_PARAM);
     UtcbFrameRef uf;
     try {
-        ScopedLock<RCULock> guard(&RCU::lock());
         DataSpace::RequestType type;
-        Child *c = cm->get_child(pid);
         uf >> type;
 
         switch(type) {
@@ -865,10 +871,10 @@ void ChildManager::Portals::dataspace(capsel_t pid) {
     }
 }
 
-void ChildManager::Portals::pf(capsel_t pid) {
+void ChildManager::Portals::ex_pf(Child *c) {
     ChildManager *cm = Thread::current()->get_tls<ChildManager*>(Thread::TLS_PARAM);
     UtcbExcFrameRef uf;
-    cpu_t cpu = cm->get_cpu(pid);
+    cpu_t cpu = CPU::current().log_id();
     cpu_t pcpu = CPU::get(cpu).phys_id();
 
     bool kill = false;
@@ -878,13 +884,11 @@ void ChildManager::Portals::pf(capsel_t pid) {
 
     // voluntary exit?
     if(pfaddr == eip && pfaddr >= ExecEnv::EXIT_START && pfaddr <= ExecEnv::THREAD_EXIT) {
-        cm->term_child(pid, uf);
+        cm->term_child(c, 0, uf);
         return;
     }
 
     try {
-        ScopedLock<RCULock> guard(&RCU::lock());
-        Child *c = cm->get_child(pid);
         ScopedLock<UserSm> guard_switch(&cm->_switchsm);
         ScopedLock<UserSm> guard_regs(&c->_sm);
 
@@ -976,14 +980,10 @@ void ChildManager::Portals::pf(capsel_t pid) {
     // other Ecs left)
     if(kill) {
         try {
-            {
-                ScopedLock<RCULock> guard(&RCU::lock());
-                Child *c = cm->get_child(pid);
-                LOG(CHILD_KILL, "Child '" << c->cmdline() << "': Unresolvable pagefault for "
-                                          << fmt(pfaddr, "p") << " @ " << fmt(uf->rip, "p") << " on cpu "
-                                          << pcpu << ", error=" << fmt(error, "#x") << "\n");
-            }
-            cm->kill_child(pid, uf, FAULT, 1);
+            LOG(CHILD_KILL, "Child '" << c->cmdline() << "': Unresolvable pagefault for "
+                                      << fmt(pfaddr, "p") << " @ " << fmt(uf->rip, "p") << " on cpu "
+                                      << pcpu << ", error=" << fmt(error, "#x") << "\n");
+            cm->kill_child(c, CapSelSpace::EV_PAGEFAULT, uf, FAULT, 1);
         }
         catch(...) {
             // just let the kernel kill the Ec here
@@ -993,34 +993,95 @@ void ChildManager::Portals::pf(capsel_t pid) {
     }
 }
 
-void ChildManager::Portals::exception(capsel_t pid) {
+void ChildManager::exception_kill(Child *c, int vector) {
     ChildManager *cm = Thread::current()->get_tls<ChildManager*>(Thread::TLS_PARAM);
     UtcbExcFrameRef uf;
-    cm->kill_child(pid, uf, FAULT, 1);
+    cm->kill_child(c, vector, uf, FAULT, 1);
 }
 
-void ChildManager::term_child(capsel_t pid, UtcbExcFrameRef &uf) {
+void ChildManager::Portals::ex_de(Child *c) {
+    ChildManager *cm = Thread::current()->get_tls<ChildManager*>(Thread::TLS_PARAM);
+    cm->exception_kill(c, CapSelSpace::EV_DIVIDE);
+}
+void ChildManager::Portals::ex_db(Child *c) {
+    ChildManager *cm = Thread::current()->get_tls<ChildManager*>(Thread::TLS_PARAM);
+    cm->exception_kill(c, CapSelSpace::EV_DEBUG);
+}
+void ChildManager::Portals::ex_bp(Child *c) {
+    ChildManager *cm = Thread::current()->get_tls<ChildManager*>(Thread::TLS_PARAM);
+    cm->exception_kill(c, CapSelSpace::EV_BREAKPOINT);
+}
+void ChildManager::Portals::ex_of(Child *c) {
+    ChildManager *cm = Thread::current()->get_tls<ChildManager*>(Thread::TLS_PARAM);
+    cm->exception_kill(c, CapSelSpace::EV_OVERFLOW);
+}
+void ChildManager::Portals::ex_br(Child *c) {
+    ChildManager *cm = Thread::current()->get_tls<ChildManager*>(Thread::TLS_PARAM);
+    cm->exception_kill(c, CapSelSpace::EV_BOUNDRANGE);
+}
+void ChildManager::Portals::ex_ud(Child *c) {
+    ChildManager *cm = Thread::current()->get_tls<ChildManager*>(Thread::TLS_PARAM);
+    cm->exception_kill(c, CapSelSpace::EV_UNDEFOP);
+}
+void ChildManager::Portals::ex_nm(Child *c) {
+    ChildManager *cm = Thread::current()->get_tls<ChildManager*>(Thread::TLS_PARAM);
+    cm->exception_kill(c, CapSelSpace::EV_NOMATHPROC);
+}
+void ChildManager::Portals::ex_df(Child *c) {
+    ChildManager *cm = Thread::current()->get_tls<ChildManager*>(Thread::TLS_PARAM);
+    cm->exception_kill(c, CapSelSpace::EV_DBLFAULT);
+}
+void ChildManager::Portals::ex_ts(Child *c) {
+    ChildManager *cm = Thread::current()->get_tls<ChildManager*>(Thread::TLS_PARAM);
+    cm->exception_kill(c, CapSelSpace::EV_TSS);
+}
+void ChildManager::Portals::ex_np(Child *c) {
+    ChildManager *cm = Thread::current()->get_tls<ChildManager*>(Thread::TLS_PARAM);
+    cm->exception_kill(c, CapSelSpace::EV_INVSEG);
+}
+void ChildManager::Portals::ex_ss(Child *c) {
+    ChildManager *cm = Thread::current()->get_tls<ChildManager*>(Thread::TLS_PARAM);
+    cm->exception_kill(c, CapSelSpace::EV_STACK);
+}
+void ChildManager::Portals::ex_gp(Child *c) {
+    ChildManager *cm = Thread::current()->get_tls<ChildManager*>(Thread::TLS_PARAM);
+    cm->exception_kill(c, CapSelSpace::EV_GENPROT);
+}
+void ChildManager::Portals::ex_mf(Child *c) {
+    ChildManager *cm = Thread::current()->get_tls<ChildManager*>(Thread::TLS_PARAM);
+    cm->exception_kill(c, CapSelSpace::EV_MATHFAULT);
+}
+void ChildManager::Portals::ex_ac(Child *c) {
+    ChildManager *cm = Thread::current()->get_tls<ChildManager*>(Thread::TLS_PARAM);
+    cm->exception_kill(c, CapSelSpace::EV_ALIGNCHK);
+}
+void ChildManager::Portals::ex_mc(Child *c) {
+    ChildManager *cm = Thread::current()->get_tls<ChildManager*>(Thread::TLS_PARAM);
+    cm->exception_kill(c, CapSelSpace::EV_MACHCHK);
+}
+void ChildManager::Portals::ex_xm(Child *c) {
+    ChildManager *cm = Thread::current()->get_tls<ChildManager*>(Thread::TLS_PARAM);
+    cm->exception_kill(c, CapSelSpace::EV_SIMD);
+}
+
+void ChildManager::term_child(Child *c, int vector, UtcbExcFrameRef &uf) {
     try {
         int exitcode;
         bool pd = uf->eip != ExecEnv::THREAD_EXIT;
-        {
-            ScopedLock<RCULock> guard(&RCU::lock());
-            Child *c = get_child(pid);
-            // lol: using the condition operator instead of if-else leads to
-            // "undefined reference to `nre::ExecEnv::THREAD_EXIT'"
-            exitcode = uf->eip;
-            if(pd)
-                exitcode -= ExecEnv::EXIT_START;
-            else
-                exitcode -= ExecEnv::THREAD_EXIT;
-            if(pd || exitcode != 0) {
-                LOG(CHILD_KILL, "Child '" << c->cmdline() << "': " << (pd ? "Pd" : "Thread")
-                                          << " terminated with exit code " << exitcode << " on cpu "
-                                          << CPU::get(get_cpu(pid)).phys_id() << "\n");
-            }
+        // lol: using the condition operator instead of if-else leads to
+        // "undefined reference to `nre::ExecEnv::THREAD_EXIT'"
+        exitcode = uf->eip;
+        if(pd)
+            exitcode -= ExecEnv::EXIT_START;
+        else
+            exitcode -= ExecEnv::THREAD_EXIT;
+        if(pd || exitcode != 0) {
+            LOG(CHILD_KILL, "Child '" << c->cmdline() << "': " << (pd ? "Pd" : "Thread")
+                                      << " terminated with exit code " << exitcode << " on cpu "
+                                      << CPU::current().phys_id() << "\n");
         }
 
-        kill_child(pid, uf, pd ? PROC_EXIT : THREAD_EXIT, exitcode);
+        kill_child(c, vector, uf, pd ? PROC_EXIT : THREAD_EXIT, exitcode);
     }
     catch(...) {
         // just let the kernel kill the Ec here
@@ -1029,16 +1090,14 @@ void ChildManager::term_child(capsel_t pid, UtcbExcFrameRef &uf) {
     }
 }
 
-void ChildManager::kill_child(capsel_t pid, UtcbExcFrameRef &uf, ExitType type, int exitcode) {
+void ChildManager::kill_child(Child *c, int vector, UtcbExcFrameRef &uf, ExitType type, int exitcode) {
     bool dead = false;
     try {
-        ScopedLock<RCULock> guard(&RCU::lock());
-        Child *c = get_child(pid);
         uintptr_t *addr, addrs[32];
         if(type == FAULT) {
             LOG(CHILD_KILL, "Child '" << c->cmdline() << "': caused exception "
-                                      << get_vector(pid) << " @ " << fmt(uf->rip, "p") << " on cpu "
-                                      << CPU::get(get_cpu(pid)).phys_id() << "\n");
+                                      << vector << " @ " << fmt(uf->rip, "p") << " on cpu "
+                                      << CPU::current().phys_id() << "\n");
             LOG(CHILD_KILL, c->reglist());
             LOG(CHILD_KILL, "Unable to resolve fault; killing child\n");
         }
@@ -1082,26 +1141,22 @@ void ChildManager::kill_child(capsel_t pid, UtcbExcFrameRef &uf, ExitType type, 
     uf->mtd = Mtd::RIP_LEN;
     uf->rip = ExecEnv::KERNEL_START;
     if(!dead && type != THREAD_EXIT)
-        destroy_child(pid);
+        destroy_child(c);
 }
 
-void ChildManager::destroy_child(capsel_t pid) {
-    // we need the lock here to prevent that the slot is reused before we're finished with
-    // destroying the child (so, the lock is also used in free_slot())
-    ScopedLock<UserSm> guard(&_slotsm);
-    size_t i = (pid - _portal_caps) / per_child_caps();
-    Child *c = rcu_dereference(_childs[i]);
-    if(!c)
-        return;
-    rcu_assign_pointer(_childs[i], nullptr);
-    _registry.remove(c);
-    RCU::invalidate(c);
-    // we have to wait until its deleted here because before that we can't reuse the slot.
-    // (we need new portals at the same place, so that they have to be revoked first)
-    RCU::gc(true);
-    _child_count--;
-    Sync::memory_barrier();
-    _diesm.up();
+void ChildManager::destroy_child(Child *c, bool wait) {
+    // take care that we don't delete childs twice.
+    bool del = false;
+    {
+        ScopedLock<UserSm> guard(&_sm);
+        if(_childs.remove(c)) {
+            del = true;
+            _registry.remove(c);
+        }
+    }
+    if(del) {
+        _deleter.del(c, wait);
+    }
 }
 
 }

@@ -44,11 +44,11 @@ public:
         size_t console = alloc_console();
         try {
             nre::Child::id_type id = cfg->start(cm, console, cpu);
-            nre::ScopedLock<nre::RCULock> rcuguard(&nre::RCU::lock());
-            const nre::Child *child = cm.get(id);
-            assert(child);
-            _list.insert(new RunningVM(cfg, console, id, child->pd()));
-            _max = nre::Math::max(_max, console);
+            nre::Reference<const nre::Child> child = cm.get(id);
+            if(child.valid()) {
+                _list.insert(new RunningVM(cfg, console, id, child->pd()));
+                _max = nre::Math::max(_max, console);
+            }
         }
         catch(...) {
             free_console(console);

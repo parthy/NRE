@@ -51,9 +51,9 @@ class CPU0Init {
 EXTERN_C void dlmalloc_init();
 static void log_thread(void*);
 static void sysinfo_thread(void*);
-PORTAL static void portal_service(capsel_t);
-PORTAL static void portal_pagefault(capsel_t);
-PORTAL static void portal_startup(capsel_t pid);
+PORTAL static void portal_service(void*);
+PORTAL static void portal_pagefault(void*);
+PORTAL static void portal_startup(void*);
 static void start_childs();
 
 CPU0Init CPU0Init::init INIT_PRIO_CPU0;
@@ -288,7 +288,7 @@ static void start_childs() {
     }
 }
 
-static void portal_service(capsel_t) {
+static void portal_service(void*) {
     UtcbFrameRef uf;
     try {
         Service::Command cmd;
@@ -328,7 +328,7 @@ static void portal_service(capsel_t) {
     }
 }
 
-static void portal_pagefault(capsel_t) {
+static void portal_pagefault(void*) {
     UtcbExcFrameRef uf;
     uintptr_t addrs[32];
     uintptr_t pfaddr = uf->qual[1];
@@ -347,7 +347,7 @@ static void portal_pagefault(capsel_t) {
     uf->mtd = Mtd::RIP_LEN;
 }
 
-static void portal_startup(capsel_t) {
+static void portal_startup(void*) {
     UtcbExcFrameRef uf;
     uf->mtd = Mtd::RIP_LEN;
     uf->rip = *reinterpret_cast<word_t*>(uf->rsp + sizeof(word_t));

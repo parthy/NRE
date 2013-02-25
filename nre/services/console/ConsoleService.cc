@@ -23,12 +23,11 @@
 using namespace nre;
 
 ConsoleService::ConsoleService(const char *name, uint modifier)
-    : Service(name, CPUSet(CPUSet::ALL), ConsoleSessionData::portal), _reboot("reboot"),
-      _screen(new HostVGA()), _cons(), _concyc(), _switcher(this), _modifier(modifier) {
+    : Service(name, CPUSet(CPUSet::ALL), reinterpret_cast<portal_func>(ConsoleSessionData::portal)),
+      _reboot("reboot"), _screen(new HostVGA()), _cons(), _concyc(), _switcher(this), _modifier(modifier) {
     // we want to accept two dataspaces
     for(auto it = CPU::begin(); it != CPU::end(); ++it) {
         LocalThread *t = get_thread(it->log_id());
-        t->set_tls<ConsoleService*>(Thread::TLS_PARAM, this);
         UtcbFrameRef uf(t->utcb());
         uf.accept_delegates(2);
     }
@@ -55,16 +54,16 @@ void ConsoleService::create_dummy(uint page, const String &title) {
 
 void ConsoleService::up() {
     ScopedLock<UserSm> guard(&_sm);
-    ConsoleSessionData *old = active();
+    SessionReference *old = active();
     iterator it = _concyc[_console]->prev();
-    _switcher.switch_to(old, &*it);
+    _switcher.switch_to(&*old->sess, &*it->sess);
 }
 
 void ConsoleService::down() {
     ScopedLock<UserSm> guard(&_sm);
-    ConsoleSessionData *old = active();
+    SessionReference *old = active();
     iterator it = _concyc[_console]->next();
-    _switcher.switch_to(old, &*it);
+    _switcher.switch_to(&*old->sess, &*it->sess);
 }
 
 void ConsoleService::left() {
@@ -73,51 +72,55 @@ void ConsoleService::left() {
 }
 
 void ConsoleService::left_unlocked() {
-    ConsoleSessionData *old = active();
+    SessionReference *old = active();
     do {
         _console = (_console - 1) % Console::SUBCONS;
     }
     while(_cons[_console] == nullptr);
     iterator it = _concyc[_console]->current();
-    _switcher.switch_to(old, &*it);
+    _switcher.switch_to(&*old->sess, &*it->sess);
 }
 
 void ConsoleService::right() {
     ScopedLock<UserSm> guard(&_sm);
-    ConsoleSessionData *old = active();
+    SessionReference *old = active();
     do {
         _console = (_console + 1) % Console::SUBCONS;
     }
     while(_cons[_console] == nullptr);
     iterator it = _concyc[_console]->current();
-    _switcher.switch_to(old, &*it);
+    _switcher.switch_to(&*old->sess, &*it->sess);
 }
 
 void ConsoleService::switch_to(size_t console) {
     ScopedLock<UserSm> guard(&_sm);
     if(_cons[console]) {
-        ConsoleSessionData *old = active();
+        SessionReference *old = active();
         _console = console;
         iterator it = _concyc[_console]->current();
-        _switcher.switch_to(old, &*it);
+        _switcher.switch_to(&*old->sess, &*it->sess);
     }
 }
 
-ServiceSession *ConsoleService::create_session(size_t id, const String &args, capsel_t caps,
-                                               Pt::portal_func func) {
+ServiceSession *ConsoleService::create_session(size_t id, const String &args, portal_func func) {
     size_t con;
     String title;
     IStringStream is(args);
     is >> con >> title;
     if(con >= Console::SUBCONS)
         VTHROW(Exception, E_ARGS_INVALID, "Subconsole " << con << " does not exist");
-    return new ConsoleSessionData(this, id, caps, func, con, title);
+    return new ConsoleSessionData(this, id, func, con, title);
 }
 
 void ConsoleService::remove(ConsoleSessionData *sess) {
     ScopedLock<UserSm> guard(&_sm);
     size_t con = sess->console();
-    _cons[con]->remove(sess);
+    for(auto it = _cons[con]->begin(); it != _cons[con]->end(); ++it) {
+        if(&*it->sess == sess) {
+            _cons[con]->remove(&*it);
+            break;
+        }
+    }
     if(_cons[con]->length() == 0) {
         delete _cons[con];
         delete _concyc[con];
@@ -130,26 +133,28 @@ void ConsoleService::remove(ConsoleSessionData *sess) {
         iterator it = _cons[con]->begin();
         _concyc[con]->reset(it, it, _cons[con]->end());
         if(_console == con)
-            _switcher.switch_to(nullptr, &*it);
+            _switcher.switch_to(nullptr, &*it->sess);
     }
 }
 
 void ConsoleService::session_ready(ConsoleSessionData *sess) {
     ScopedLock<UserSm> guard(&_sm);
-    ConsoleSessionData *old = active();
+    SessionReference *old = active();
+    SessionReference *newref = new SessionReference;
+    newref->sess = Reference<ConsoleSessionData>(sess);
     _console = sess->console();
     if(_cons[_console] == nullptr) {
-        _cons[_console] = new nre::DList<ConsoleSessionData>();
-        _cons[_console]->append(sess);
+        _cons[_console] = new nre::DList<SessionReference>();
+        _cons[_console]->append(newref);
         _concyc[_console] = new Cycler<iterator>(
             _cons[_console]->begin(), _cons[_console]->end());
     }
     else {
-        iterator it = _cons[_console]->append(sess);
+        iterator it = _cons[_console]->append(newref);
         _concyc[_console]->reset(
             _cons[_console]->begin(), it, _cons[_console]->end());
     }
-    _switcher.switch_to(old, sess);
+    _switcher.switch_to(old ? &*old->sess : nullptr, sess);
 }
 
 bool ConsoleService::handle_keyevent(const Keyboard::Packet &pk) {

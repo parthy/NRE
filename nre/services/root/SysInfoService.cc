@@ -42,11 +42,13 @@ const char *SysInfoService::get_root_info(size_t &virt, size_t &phys, size_t &th
     // determine physical memory by taking the total amount of used mem and substracting the amount
     // we've passed to children
     phys = PhysicalMemory::total_size() - PhysicalMemory::free_size();
-    const Child *c;
-    for(size_t i = 0; (c = _cm->get_at(i)) != nullptr; ++i) {
-        size_t cvirt, cphys;
-        c->reglist().memusage(cvirt, cphys);
-        phys -= cphys;
+    {
+        ScopedLock<ChildManager> guard(_cm);
+        for(auto it = _cm->begin(); it != _cm->end(); ++it) {
+            size_t cvirt, cphys;
+            it->reglist().memusage(cvirt, cphys);
+            phys -= cphys;
+        }
     }
     // determine virtual memory by calculating the mem for our text and data area and the one we
     // assign dynamically.
@@ -60,7 +62,17 @@ const char *SysInfoService::get_root_info(size_t &virt, size_t &phys, size_t &th
     return cmdline;
 }
 
-void SysInfoService::portal(capsel_t) {
+Reference<const Child> SysInfoService::get_child_at(size_t idx) {
+    ScopedLock<ChildManager> guard(_cm);
+    auto it = _cm->begin();
+    for(; idx-- > 0 && it != _cm->end(); ++it)
+        ;
+    if(it == _cm->end())
+        return Reference<const Child>();
+    return Reference<const Child>(&*it);
+}
+
+void SysInfoService::portal(ServiceSession*) {
     UtcbFrameRef uf;
     try {
         SysInfo::Command cmd;
@@ -109,10 +121,9 @@ void SysInfoService::portal(capsel_t) {
 
                 size_t virt, phys, threads;
                 if(idx > 0) {
-                    ScopedLock<RCULock> guard(&RCU::lock());
                     idx--;
-                    const Child *c = idx >= ChildManager::MAX_CHILDS ? nullptr : srv->_cm->get_at(idx);
-                    if(c) {
+                    Reference<const Child> c = srv->get_child_at(idx);
+                    if(c.valid()) {
                         // the main thread is not included in the sc-list
                         threads = c->scs().length() + 1;
                         c->reglist().memusage(virt, phys);
