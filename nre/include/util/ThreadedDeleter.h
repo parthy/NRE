@@ -51,13 +51,15 @@ public:
      * @param name the prefix for the thread-names
      */
     explicit ThreadedDeleter(const char *name)
-            : _sms(new Sm*[CPU::count()]), _cpu_done(0), _done(0), _sm(), _objs() {
+            : _sms(new Sm*[CPU::count()]), _tids(new ulong[CPU::count()]), _cpu_done(0), _done(0),
+              _sm(), _objs(), _run(true) {
         OStringStream os;
         os << "cleanup-" << name;
         for(auto it = CPU::begin(); it != CPU::end(); ++it) {
             _sms[it->log_id()] = new Sm(0);
             GlobalThread *gt = GlobalThread::create(
                     it->log_id() == 0 ? cleanup_coordinator : cleanup_helper, it->log_id(), os.str());
+            _tids[it->log_id()] = gt->id();
             gt->set_tls<ThreadedDeleter<T>*>(Thread::TLS_PARAM, this);
             gt->start();
         }
@@ -66,29 +68,31 @@ public:
      * Destructor
      */
     virtual ~ThreadedDeleter() {
-        // TODO actually we should terminate the threads here and destroy the semaphores afterwards
-        // a join operation is missing to allow that
+        // wait until all threads are done
+        _run = false;
+        for(auto it = CPU::begin(); it != CPU::end(); ++it) {
+            _sms[it->log_id()]->up();
+            GlobalThread::join(_tids[it->log_id()]);
+        }
+        // now release the resources
         for(size_t i = 0; i < CPU::count(); ++i)
             delete _sms[i];
         delete[] _sms;
+        delete[] _tids;
     }
 
     /**
      * Deletes the given object. It will wakeup the coordinator and force every CPU to do call().
-     * If you're calling this method from a portal (more precisely: when calling from a portal that
-     * is handled by one of the Ecs that are used to do the "cleanup-calls"), you CAN'T wait until
-     * it's finished (deadlock). You can only do that if you calling it from a GlobalThread.
-     * When setting <wait> to true, take care that you don't do that concurrently.
      * Note that this method doesn't make sure that objects aren't deleted twice! So, the caller
      * is responsible for that.
      *
      * @param obj the object to delete
-     * @param wait whether to wait until it's finished (ONLY possible when not in a portal)
      */
-    void del(T *obj, bool wait = false) {
+    void del(T *obj) {
         {
             ScopedLock<UserSm> guard(&_sm);
             _objs.append(obj);
+            LOG(THREADEDDEL, "del(" << obj << ")\n");
         }
         // notify the coordinator-thread
         // note that the one reason for doing it in another thread is that the childmanager can't
@@ -97,16 +101,20 @@ public:
         // pagefaults. So, to avoid deadlocks, we do it in a different thread.
         Sync::memory_fence();
         _sms[0]->up();
+    }
 
-        if(wait) {
-            // we have to check whether it's destroyed here because _done is also up'ed if we haven't
-            // waited for it.
-            while(1) {
-                _done.zero();
-                ScopedLock<UserSm> guard(&_sm);
-                if(_objs.length() == 0)
-                    break;
-            }
+    /**
+     * Waits until all queued objects have been deleted. Note that you can't call wait()
+     * from multiple threads concurrently!
+     */
+    void wait() {
+        // we have to check whether it's destroyed here because _done is also up'ed if we haven't
+        // waited for it.
+        while(1) {
+            _done.zero();
+            ScopedLock<UserSm> guard(&_sm);
+            if(_objs.length() == 0)
+                break;
         }
     }
 
@@ -133,6 +141,7 @@ private:
 
     void remove(T *obj) {
         assert(CPU::current().log_id() == 0);
+        LOG(THREADEDDEL, "Deleting " << obj << "\n");
         invalidate(obj);
 
         // let all helper threads do call()
@@ -155,57 +164,55 @@ private:
             _objs.remove(obj);
         }
         destroy(obj);
+        LOG(THREADEDDEL, "Deletion of " << obj << " completed\n");
     }
 
     static void cleanup_coordinator(void*) {
         ThreadedDeleter<T> *ct = Thread::current()->get_tls<ThreadedDeleter<T>*>(Thread::TLS_PARAM);
         Sm *sm = ct->_sms[CPU::current().log_id()];
-        // TODO try-catch until we have join().
-        try {
+        while(1) {
+            sm->down();
+            if(!ct->_run)
+                break;
+
             while(1) {
-                sm->down();
-
-                while(1) {
-                    // get first object from list
-                    T *obj = nullptr;
-                    {
-                        ScopedLock<UserSm> guard(&ct->_sm);
-                        if(ct->_objs.length() > 0)
-                            obj = &*ct->_objs.begin();
-                    }
-                    if(!obj)
-                        break;
-
-                    // delete it
-                    ct->remove(obj);
-                    ct->_done.up();
+                // get first object from list
+                T *obj = nullptr;
+                {
+                    ScopedLock<UserSm> guard(&ct->_sm);
+                    if(ct->_objs.length() > 0)
+                        obj = &*ct->_objs.begin();
                 }
+                if(!obj)
+                    break;
+
+                // delete it
+                ct->remove(obj);
+                ct->_done.up();
             }
-        }
-        catch(...) {
+            LOG(THREADEDDEL, "No more objects to delete\n");
         }
     }
 
     static void cleanup_helper(void*) {
         ThreadedDeleter<T> *ct = Thread::current()->get_tls<ThreadedDeleter<T>*>(Thread::TLS_PARAM);
         Sm *sm = ct->_sms[CPU::current().log_id()];
-        // TODO try-catch until we have join().
-        try {
-            while(1) {
-                sm->down();
-                ct->call();
-                ct->_cpu_done.up();
-            }
-        }
-        catch(...) {
+        while(1) {
+            sm->down();
+            if(!ct->_run)
+                break;
+            ct->call();
+            ct->_cpu_done.up();
         }
     }
 
     Sm **_sms;
+    ulong *_tids;
     Sm _cpu_done;
     Sm _done;
     UserSm _sm;
     SList<T> _objs;
+    volatile bool _run;
 };
 
 }

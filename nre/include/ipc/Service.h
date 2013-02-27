@@ -123,16 +123,24 @@ public:
      * Destroys this service, i.e. destroys all sessions. You should have called unreg() before.
      */
     virtual ~Service() {
-        unreg();
-        {
-            Reference<ServiceSession> sess;
-            while((sess = get_first()).valid())
-                remove_session(&*sess, true);
+        try {
+            unreg();
+            {
+                Reference<ServiceSession> sess;
+                while((sess = get_first()).valid())
+                    remove_session(&*sess);
+                // wait until all sessions have been destroyed (we can't do that anymore if we've
+                // already destroyed the portals)
+                _deleter.wait();
+            }
+            for(size_t i = 0; i < CPU::count(); ++i)
+                delete _insts[i];
+            delete[] _insts;
+            CapSelSpace::get().free(_regcaps, 1 << CPU::order());
         }
-        for(size_t i = 0; i < CPU::count(); ++i)
-            delete _insts[i];
-        delete[] _insts;
-        CapSelSpace::get().free(_regcaps, 1 << CPU::order());
+        catch(...) {
+            // destructors shouldn't throw
+        }
     }
 
     /**
@@ -267,7 +275,7 @@ private:
         return new ServiceSession(this, id, func);
     }
 
-    void remove_session(ServiceSession *sess, bool wait = false);
+    void remove_session(ServiceSession *sess);
 
     void unreg() {
         UtcbFrame uf;

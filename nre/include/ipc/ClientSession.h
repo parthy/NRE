@@ -57,8 +57,13 @@ public:
      * Closes the session again
      */
     virtual ~ClientSession() {
-        close();
-        CapSelSpace::get().free(_caps, 1 << CPU::order());
+        try {
+            close();
+            CapSelSpace::get().free(_caps, 1 << CPU::order());
+        }
+        catch(...) {
+            // destructors shouldn't throw
+        }
     }
 
     /**

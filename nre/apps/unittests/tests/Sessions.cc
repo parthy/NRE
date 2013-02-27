@@ -38,7 +38,6 @@ typedef void (*client_func)(AvgProfiler &prof, Pt &pt, UtcbFrame &uf, uint &sum)
 
 static const uint TEST_COUNT = 100;
 static MyService *srv;
-static Sm ready(0);
 
 class MySession : public ServiceSession {
 public:
@@ -70,7 +69,7 @@ PORTAL static void portal_empty(void*) {
     bool last;
     uf >> last;
     if(last)
-        srv->last_seen++;
+        Atomic::add(&srv->last_seen, +1);
 }
 
 static int sessions_server(int, char *[]) {
@@ -87,16 +86,17 @@ static void client_thread(void*) {
         uf << (i == TEST_COUNT - 1);
         sess.pt(CPU::current().log_id()).call(uf);
     }
-    ready.up();
 }
 
 static int sessions_client(int, char *[]) {
+    ulong ids[CPU::count()];
     for(CPU::iterator cpu = CPU::begin(); cpu != CPU::end(); ++cpu) {
         GlobalThread *gt = GlobalThread::create(client_thread, cpu->log_id(), "mythread");
+        ids[cpu->log_id()] = gt->id();
         gt->start();
     }
-    for(size_t i = 0; i < CPU::count(); ++i)
-        ready.down();
+    for(size_t i = 0; i < ARRAY_SIZE(ids); ++i)
+        GlobalThread::join(ids[i]);
     return 0;
 }
 

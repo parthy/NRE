@@ -46,7 +46,6 @@ public:
                             Syscalls::EC_GLOBAL, Pd::current()->sel());
         sel(cap.release());
     }
-    virtual ~VCpu();
 
     /**
      * @return the scheduling context this vcpu is bound to
@@ -62,7 +61,7 @@ public:
     }
 
     /**
-     * Starts this vcpu with given quantum-priority-descriptor
+     * (Re)starts this vcpu with given quantum-priority-descriptor, i.e. assigns an Sc to it.
      *
      * @param qpd the qpd to use
      */

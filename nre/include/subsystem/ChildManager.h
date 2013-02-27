@@ -292,7 +292,7 @@ private:
     void exception_kill(Child *c, int vector);
     void term_child(Child *c, int vector, UtcbExcFrameRef &uf);
     void kill_child(Child *c, int vector, UtcbExcFrameRef &uf, ExitType type, int exitcode);
-    void destroy_child(Child *c, bool wait = false);
+    void destroy_child(Child *c);
 
     static void prepare_stack(Child *c, uintptr_t &sp, uintptr_t csp);
     void build_hip(Child *c, const ChildConfig &config);

@@ -14,9 +14,9 @@
  * General Public License version 2 for more details.
  */
 
+#include <kobj/Sc.h>
 #include <kobj/Thread.h>
 #include <kobj/LocalThread.h>
-#include <kobj/Sc.h>
 #include <kobj/Pt.h>
 #include <utcb/UtcbFrame.h>
 #include <Compiler.h>
@@ -46,7 +46,7 @@ capsel_t Thread::create(Thread *t, Pd *pd, Syscalls::ECType type, cpu_t cpu, cap
     flags = HAS_OWN_STACK | HAS_OWN_UTCB;
     if(stack == 0 || uaddr == 0) {
         UtcbFrame uf;
-        uf << Sc::CREATE << (stack == 0) << (uaddr == 0);
+        uf << Sc::ALLOC << (stack == 0) << (uaddr == 0);
         CPU::current().sc_pt().call(uf);
         uf.check_reply();
         if(stack == 0) {
@@ -61,12 +61,12 @@ capsel_t Thread::create(Thread *t, Pd *pd, Syscalls::ECType type, cpu_t cpu, cap
 
     // setup stack and create Ec
     void *sp = ExecEnv::setup_stack(pd, t, start, ret, stack);
-    ScopedCapSels scs;
-    Syscalls::create_ec(scs.get(), reinterpret_cast<void*>(uaddr), sp, CPU::get(cpu).phys_id(),
+    ScopedCapSels cap;
+    Syscalls::create_ec(cap.get(), reinterpret_cast<void*>(uaddr), sp, CPU::get(cpu).phys_id(),
                         evb, type, pd->sel());
     if(pd == Pd::current())
         RCU::add(t);
-    return scs.release();
+    return cap.release();
 }
 
 Thread::~Thread() {

@@ -26,7 +26,7 @@ ServiceSession *Service::new_session(const String &args) {
     return sess;
 }
 
-void Service::remove_session(ServiceSession *sess, bool wait) {
+void Service::remove_session(ServiceSession *sess) {
     // take care that we don't delete a session twice.
     bool del = false;
     {
@@ -34,7 +34,7 @@ void Service::remove_session(ServiceSession *sess, bool wait) {
         del = _sessions.remove(sess);
     }
     if(del)
-        _deleter.del(sess, wait);
+        _deleter.del(sess);
 }
 
 }

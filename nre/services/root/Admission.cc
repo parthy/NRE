@@ -47,7 +47,7 @@ void Admission::portal_sc(void*) {
         uf >> cmd;
 
         switch(cmd) {
-            case Sc::CREATE: {
+            case Sc::ALLOC: {
                 uintptr_t stackaddr = 0, utcbaddr = 0;
                 bool stack, utcb;
                 uf >> stack >> utcb;
@@ -70,12 +70,13 @@ void Admission::portal_sc(void*) {
             }
             break;
 
-            case Sc::START: {
+            case Sc::CREATE: {
                 String name;
+                ulong id;
                 Qpd qpd;
                 cpu_t cpu;
                 capsel_t ec = uf.get_delegated(0).offset();
-                uf >> name >> cpu >> qpd;
+                uf >> name >> id >> cpu >> qpd;
                 uf.finish_input();
 
                 ScopedCapSels sc;
@@ -90,7 +91,7 @@ void Admission::portal_sc(void*) {
             }
             break;
 
-            case Sc::STOP: {
+            case Sc::DESTROY: {
                 capsel_t sc = uf.get_translated(0).offset();
                 uf.finish_input();
 
@@ -101,6 +102,11 @@ void Admission::portal_sc(void*) {
                 uf << E_SUCCESS;
             }
             break;
+
+            case Sc::JOIN:
+                uf.clear();
+                uf << E_ARGS_INVALID;
+                break;
         }
     }
     catch(const Exception& e) {

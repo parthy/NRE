@@ -20,6 +20,7 @@
 #include <arch/Startup.h>
 #include <kobj/Thread.h>
 #include <kobj/Pd.h>
+#include <util/Atomic.h>
 #include <Hip.h>
 
 /**
@@ -54,6 +55,14 @@ public:
     typedef ExecEnv::startup_func startup_func;
 
     /**
+     * Blocks until the thread with id <id> terminated. If <id> is 0, it blocks until all other
+     * threads are terminated. Note that this does only work from the main-thread.
+     *
+     * @param id the id of the thread
+     */
+    static void join(ulong id);
+
+    /**
      * Creates a new GlobalThread in the current Pd that starts at <start> on CPU <cpu>.
      *
      * @param start the entry-point of the Thread
@@ -79,10 +88,17 @@ public:
      */
     explicit GlobalThread(startup_func start, cpu_t cpu, const String &name, Pd *pd, uintptr_t utcb)
         : Thread(pd, Syscalls::EC_GLOBAL, start, reinterpret_cast<uintptr_t>(ec_landing_spot), cpu,
-                 Hip::get().service_caps() * cpu, 0, utcb), _sc(), _name(name) {
+                 Hip::get().service_caps() * cpu, 0, utcb), _id(Atomic::add(&_next_id, +1)), _sc(),
+                 _name(name) {
     }
     virtual ~GlobalThread();
 
+    /**
+     * @return the id of the thread (only available
+     */
+    capsel_t id() const {
+        return _id;
+    }
     /**
      * @return the scheduling context this thread is bound to (nullptr if start() hasn't been
      *  called yet)
@@ -98,18 +114,19 @@ public:
     }
 
     /**
-     * Starts this thread with given quantum-priority-descriptor
+     * (Re)starts this thread with given quantum-priority-descriptor, i.e. assigns an Sc to it.
      *
      * @param qpd the qpd to use
-     * @param pd the pd to start the thread in
      */
-    void start(Qpd qpd = Qpd(), Pd *pd = Pd::current());
+    void start(Qpd qpd = Qpd());
 
 private:
     explicit GlobalThread(uintptr_t uaddr, capsel_t gt, capsel_t sc, cpu_t cpu, Pd *pd, uintptr_t stack);
 
+    ulong _id;
     Sc *_sc;
     const String _name;
+    static ulong _next_id;
     static GlobalThread _cur;
 };
 

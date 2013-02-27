@@ -99,7 +99,6 @@ static void writer(void*) {
 
 static TimerSession *timer;
 static UserSm sm;
-static Sm done(0);
 
 static void view0(void*) {
     char title[64];
@@ -113,7 +112,6 @@ static void view0(void*) {
         view << "Huhu, from page " << view.page() << ": " << i << "\n";
         i++;
     }
-    done.up();
 }
 
 static void tick_thread(void*) {
@@ -188,8 +186,7 @@ int main() {
     }
 
     // wait until all are finished
-    for(CPU::iterator it = CPU::begin(); it != CPU::end(); ++it)
-        done.down();
+    GlobalThread::join(0);
 #endif
 
     /*

@@ -18,7 +18,6 @@
 
 #include <kobj/Pd.h>
 #include <kobj/GlobalThread.h>
-#include <kobj/Sc.h>
 #include <kobj/Pt.h>
 #include <kobj/UserSm.h>
 #include <kobj/Gsi.h>
@@ -51,23 +50,30 @@ class Child : public SListTreapNode<size_t>, public RefCounted {
     /**
      * Holds the properties of an Sc that has been announced by a child
      */
-    class SchedEntity : public nre::SListItem {
+    class SchedEntity : public SListItem {
     public:
         /**
          * Creates a new sched-entity
          *
+         * @param id the thread id
          * @param name the name of the thread
          * @param cpu the cpu its running on
          * @param cap the Sc capability
          */
-        explicit SchedEntity(const nre::String &name, cpu_t cpu, capsel_t cap)
-            : nre::SListItem(), _name(name), _cpu(cpu), _cap(cap) {
+        explicit SchedEntity(ulong id, const String &name, cpu_t cpu, capsel_t cap)
+            : SListItem(), _id(id), _name(name), _cpu(cpu), _cap(cap) {
         }
 
         /**
+         * @return the id of the thread (unique within one child)
+         */
+        ulong id() const {
+            return _id;
+        }
+        /**
          * @return the name of the thread
          */
-        const nre::String &name() const {
+        const String &name() const {
             return _name;
         }
         /**
@@ -84,9 +90,42 @@ class Child : public SListTreapNode<size_t>, public RefCounted {
         }
 
     private:
-        nre::String _name;
+        ulong _id;
+        String _name;
         cpu_t _cpu;
         capsel_t _cap;
+    };
+
+    /**
+     * Used to wait for the termination of GlobalThreads.
+     */
+    class JoinItem : public SListItem {
+    public:
+        /**
+         * Constructor
+         *
+         * @param id the id of the thread
+         * @param sm the sm-capability to up as soon as the thread died
+         */
+        explicit JoinItem(ulong id, capsel_t sm) : SListItem(), _id(id), _sm(sm, true) {
+        }
+
+        /**
+         * @return the id of the thread (unique within one child)
+         */
+        ulong id() const {
+            return _id;
+        }
+        /**
+         * @return the semaphore
+         */
+        Sm &sm() {
+            return _sm;
+        }
+
+    private:
+        ulong _id;
+        Sm _sm;
     };
 
 public:
@@ -205,8 +244,9 @@ private:
     explicit Child(ChildManager *cm, id_type id, const String &cmdline)
         : SListTreapNode<size_t>(id), RefCounted(), _cm(cm), _id(id), _cmdline(cmdline), _started(),
           _pd(), _ec(), _pts(), _ptcount(), _regs(), _io(PortManager::USED), _scs(), _gsis(),
-          _sessions(), _gsi_caps(CapSelSpace::get().allocate(Hip::MAX_GSIS)), _gsi_next(), _entry(),
-          _main(), _stack(), _utcb(), _hip(), _last_fault_addr(), _last_fault_cpu(), _sm() {
+          _sessions(), _joins(),  _gsi_caps(CapSelSpace::get().allocate(Hip::MAX_GSIS)),
+          _gsi_next(), _entry(), _main(), _stack(), _utcb(), _hip(), _last_fault_addr(),
+          _last_fault_cpu(), _sm() {
     }
 public:
     virtual ~Child();
@@ -217,20 +257,14 @@ private:
             delete _pts[i];
     }
 
-    void add_sc(const String &name, cpu_t cpu, capsel_t sc) {
-        ScopedLock<UserSm> guard(&_sm);
-        _scs.append(new SchedEntity(name, cpu, sc));
-    }
-    void remove_sc(capsel_t sc) {
-        ScopedLock<UserSm> guard(&_sm);
-        for(auto it = _scs.begin(); it != _scs.end(); ++it) {
-            if(it->cap() == sc) {
-                _scs.remove(&*it);
-                delete &*it;
-                break;
-            }
-        }
-    }
+    void alloc_thread(uintptr_t *stack_addr, uintptr_t *utcb_addr);
+    capsel_t create_thread(capsel_t ec, const String &name, ulong id, cpu_t cpu, Qpd &qpd);
+    SchedEntity *get_thread_by_id(ulong id);
+    SchedEntity *get_thread_by_cap(capsel_t cap);
+    void join_thread(ulong id, capsel_t sm);
+    void term_thread(ulong id, uintptr_t stack, uintptr_t utcb);
+    void remove_thread(capsel_t cap);
+    void destroy_thread(SchedEntity *se);
 
     void release_gsis();
     void release_ports();
@@ -254,6 +288,7 @@ private:
     SList<SchedEntity> _scs;
     BitField<Hip::MAX_GSIS> _gsis;
     SList<ClientSession> _sessions;
+    SList<JoinItem> _joins;
     capsel_t _gsi_caps;
     capsel_t _gsi_next;
     uintptr_t _entry;

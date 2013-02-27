@@ -19,14 +19,10 @@
 
 namespace nre {
 
-VCpu::~VCpu() {
-    delete _sc;
-}
-
 void VCpu::start(Qpd qpd) {
     assert(_sc == nullptr);
     _sc = new Sc(this, qpd);
-    _sc->start(_name);
+    _sc->start(_name, 0);
 }
 
 }

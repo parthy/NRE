@@ -70,6 +70,7 @@ public:
         STORAGE         = 1 << 19,
         STORAGE_DETAIL  = 1 << 20,
         CONSOLE         = 1 << 21,
+        THREADEDDEL     = 1 << 22,
     };
 
     static UserSm sm;

@@ -19,6 +19,7 @@
 #include <stream/Serial.h>
 #include <ipc/Service.h>
 #include <kobj/Gsi.h>
+#include <kobj/Sc.h>
 #include <kobj/Ports.h>
 #include <arch/Elf.h>
 #include <util/Math.h>
@@ -53,7 +54,8 @@ ChildManager::~ChildManager() {
     {
         Reference<Child> child;
         while((child = get_first()).valid())
-            destroy_child(&*child, true);
+            destroy_child(&*child);
+        _deleter.wait();
     }
     for(size_t i = 0; i < CPU::count(); ++i) {
         delete _ecs[i];
@@ -187,23 +189,23 @@ Child::id_type ChildManager::load(uintptr_t addr, size_t size, const ChildConfig
         int no;
         PORTAL void (*portal)(Child*);
     } exc[] = {
-        {CapSelSpace::EV_DIVIDE, Portals::ex_de},
-        {CapSelSpace::EV_DEBUG, Portals::ex_db},
-        {CapSelSpace::EV_BREAKPOINT, Portals::ex_bp},
-        {CapSelSpace::EV_OVERFLOW, Portals::ex_of},
-        {CapSelSpace::EV_BOUNDRANGE, Portals::ex_br},
-        {CapSelSpace::EV_UNDEFOP, Portals::ex_ud},
-        {CapSelSpace::EV_NOMATHPROC, Portals::ex_nm},
-        {CapSelSpace::EV_DBLFAULT, Portals::ex_df},
-        {CapSelSpace::EV_TSS, Portals::ex_ts},
-        {CapSelSpace::EV_INVSEG, Portals::ex_np},
-        {CapSelSpace::EV_STACK, Portals::ex_ss},
-        {CapSelSpace::EV_GENPROT, Portals::ex_gp},
-        {CapSelSpace::EV_PAGEFAULT, Portals::ex_pf},
-        {CapSelSpace::EV_MATHFAULT, Portals::ex_mf},
-        {CapSelSpace::EV_ALIGNCHK, Portals::ex_ac},
-        {CapSelSpace::EV_MACHCHK, Portals::ex_mc},
-        {CapSelSpace::EV_SIMD, Portals::ex_xm},
+        {CapSelSpace::EV_DIVIDE,        Portals::ex_de},
+        {CapSelSpace::EV_DEBUG,         Portals::ex_db},
+        {CapSelSpace::EV_BREAKPOINT,    Portals::ex_bp},
+        {CapSelSpace::EV_OVERFLOW,      Portals::ex_of},
+        {CapSelSpace::EV_BOUNDRANGE,    Portals::ex_br},
+        {CapSelSpace::EV_UNDEFOP,       Portals::ex_ud},
+        {CapSelSpace::EV_NOMATHPROC,    Portals::ex_nm},
+        {CapSelSpace::EV_DBLFAULT,      Portals::ex_df},
+        {CapSelSpace::EV_TSS,           Portals::ex_ts},
+        {CapSelSpace::EV_INVSEG,        Portals::ex_np},
+        {CapSelSpace::EV_STACK,         Portals::ex_ss},
+        {CapSelSpace::EV_GENPROT,       Portals::ex_gp},
+        {CapSelSpace::EV_PAGEFAULT,     Portals::ex_pf},
+        {CapSelSpace::EV_MATHFAULT,     Portals::ex_mf},
+        {CapSelSpace::EV_ALIGNCHK,      Portals::ex_ac},
+        {CapSelSpace::EV_MACHCHK,       Portals::ex_mc},
+        {CapSelSpace::EV_SIMD,          Portals::ex_xm},
     };
 
     // create child
@@ -303,7 +305,7 @@ Child::id_type ChildManager::load(uintptr_t addr, size_t size, const ChildConfig
         LOG(CHILD_CREATE, *c << "\n");
 
         // start child
-        c->_ec->start(Qpd(), c->_pd);
+        c->_ec->start();
     }
     catch(...) {
         delete c;
@@ -569,30 +571,13 @@ void ChildManager::Portals::sc(Child *c) {
         uf >> cmd;
 
         switch(cmd) {
-            case Sc::CREATE: {
+            case Sc::ALLOC: {
                 uintptr_t stackaddr = 0, utcbaddr = 0;
                 bool stack, utcb;
                 uf >> stack >> utcb;
                 uf.finish_input();
 
-                // TODO we might leak resources here if something fails
-                ScopedLock<UserSm> childguard(&c->_sm);
-                {
-                    if(stack) {
-                        uint align = Math::next_pow2_shift(ExecEnv::STACK_SIZE);
-                        DataSpaceDesc desc(ExecEnv::STACK_SIZE, DataSpaceDesc::ANONYMOUS,
-                                           DataSpaceDesc::RW, 0, 0, align - ExecEnv::PAGE_SHIFT);
-                        const DataSpace &ds = cm->_dsm.create(desc);
-                        stackaddr = c->reglist().find_free(ds.size(), ExecEnv::STACK_SIZE);
-                        c->reglist().add(ds.desc(), stackaddr, ds.flags() | ChildMemory::OWN, ds.unmapsel());
-                    }
-                    if(utcb) {
-                        DataSpaceDesc desc(ExecEnv::PAGE_SIZE, DataSpaceDesc::VIRTUAL, DataSpaceDesc::RW);
-                        utcbaddr = c->reglist().find_free(ExecEnv::PAGE_SIZE);
-                        c->reglist().add(desc, utcbaddr, desc.flags());
-                    }
-                }
-
+                c->alloc_thread(stack ? &stackaddr : nullptr, utcb ? &utcbaddr : nullptr);
                 uf << E_SUCCESS;
                 if(stack)
                     uf << stackaddr;
@@ -601,31 +586,16 @@ void ChildManager::Portals::sc(Child *c) {
             }
             break;
 
-            case Sc::START: {
+            case Sc::CREATE: {
+                ulong id;
                 String name;
                 Qpd qpd;
                 cpu_t cpu;
                 capsel_t ec = uf.get_delegated(0).offset();
-                uf >> name >> cpu >> qpd;
+                uf >> name >> id >> cpu >> qpd;
                 uf.finish_input();
 
-                // TODO later one could add policy here and adjust the qpd accordingly
-
-                capsel_t sc;
-                {
-                    UtcbFrame puf;
-                    puf.accept_delegates(0);
-                    puf << Sc::START << name << cpu << qpd;
-                    puf.delegate(ec);
-                    CPU::current().sc_pt().call(puf);
-                    puf.check_reply();
-                    sc = puf.get_delegated(0).offset();
-                    puf >> qpd;
-                }
-                c->add_sc(name, cpu, sc);
-
-                LOG(ADMISSION, "Child '" << c->cmdline() << "' created sc '"
-                                         << name << "' on cpu " << cpu << " (" << sc << ")\n");
+                capsel_t sc = c->create_thread(ec, name, id, cpu, qpd);
 
                 uf.accept_delegates();
                 uf.delegate(sc);
@@ -633,20 +603,25 @@ void ChildManager::Portals::sc(Child *c) {
             }
             break;
 
-            case Sc::STOP: {
+            case Sc::JOIN: {
+                ulong id;
+                capsel_t sm = uf.get_delegated(0).offset();
+                uf >> id;
+                uf.finish_input();
+
+                c->join_thread(id, sm);
+
+                uf.accept_delegates();
+                uf << E_SUCCESS;
+            }
+            break;
+
+            case Sc::DESTROY: {
                 capsel_t sc = uf.get_translated(0).offset();
                 uf.finish_input();
 
-                c->remove_sc(sc);
-                {
-                    UtcbFrame puf;
-                    puf << Sc::STOP;
-                    puf.translate(sc);
-                    CPU::current().sc_pt().call(puf);
-                    puf.check_reply();
-                }
+                c->remove_thread(sc);
 
-                LOG(ADMISSION, "Child '" << c->cmdline() << "' destroyed sc (" << sc << ")\n");
                 uf << E_SUCCESS;
             }
             break;
@@ -1102,19 +1077,8 @@ void ChildManager::kill_child(Child *c, int vector, UtcbExcFrameRef &uf, ExitTyp
             LOG(CHILD_KILL, "Unable to resolve fault; killing child\n");
         }
         // if its a thread exit, free stack and utcb
-        else if(type == THREAD_EXIT) {
-            ScopedLock<UserSm> guard(&c->_sm);
-            uintptr_t stack = uf->rsi;
-            uintptr_t utcb = uf->rdi;
-            // 0 indicates that this thread has used its own stack
-            if(stack) {
-                capsel_t sel;
-                DataSpaceDesc desc = c->reglist().remove_by_addr(stack, &sel);
-                _dsm.release(desc, sel);
-            }
-            //if(utcb)
-            //   c->reglist().remove_by_addr(utcb);
-        }
+        else if(type == THREAD_EXIT)
+            c->term_thread(uf->rsi & (ExecEnv::PAGE_SIZE - 1), uf->rsi, uf->rdi);
 
         if(exitcode != 0) {
             ExecEnv::collect_backtrace(c->_ec->stack(), uf->rbp, addrs, 32);
@@ -1144,7 +1108,7 @@ void ChildManager::kill_child(Child *c, int vector, UtcbExcFrameRef &uf, ExitTyp
         destroy_child(c);
 }
 
-void ChildManager::destroy_child(Child *c, bool wait) {
+void ChildManager::destroy_child(Child *c) {
     // take care that we don't delete childs twice.
     bool del = false;
     {
@@ -1154,9 +1118,8 @@ void ChildManager::destroy_child(Child *c, bool wait) {
             _registry.remove(c);
         }
     }
-    if(del) {
-        _deleter.del(c, wait);
-    }
+    if(del)
+        _deleter.del(c);
 }
 
 }

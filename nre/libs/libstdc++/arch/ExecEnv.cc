@@ -17,6 +17,7 @@
 #include <arch/ExecEnv.h>
 #include <kobj/UserSm.h>
 #include <kobj/Thread.h>
+#include <kobj/GlobalThread.h>
 #include <util/ScopedLock.h>
 #include <util/Math.h>
 #include <cap/CapRange.h>
@@ -42,6 +43,7 @@ void ExecEnv::thread_exit() {
     uintptr_t stack = t->stack();
     uintptr_t utcb = reinterpret_cast<uintptr_t>(t->utcb());
     uint flags = t->flags();
+    ulong id = reinterpret_cast<GlobalThread*>(t)->id();
     // we have to revoke the utcb because NOVA doesn't do so and our parent can't do it for us
     if(~flags & Thread::HAS_OWN_UTCB)
         CapRange(utcb >> ExecEnv::PAGE_SHIFT, 1, Crd::MEM_ALL).revoke(true);
@@ -51,7 +53,8 @@ void ExecEnv::thread_exit() {
         "jmp	*%0;"
         :
         : "r" (THREAD_EXIT),
-        "S" ((~flags & Thread::HAS_OWN_STACK) ? stack : 0),
+        // TODO just temporary (we're limited to 4096 thread-ids)
+        "S" (((~flags & Thread::HAS_OWN_STACK) ? stack : 0) | id),
         "D" ((~flags & Thread::HAS_OWN_UTCB) ? utcb : 0)
     );
     UNREACHED;
