@@ -56,14 +56,14 @@ void ConsoleService::up() {
     ScopedLock<UserSm> guard(&_sm);
     SessionReference *old = active();
     iterator it = _concyc[_console]->prev();
-    _switcher.switch_to(&*old->sess, &*it->sess);
+    _switcher.switch_to(old ? &*old->sess : nullptr, &*it->sess);
 }
 
 void ConsoleService::down() {
     ScopedLock<UserSm> guard(&_sm);
     SessionReference *old = active();
     iterator it = _concyc[_console]->next();
-    _switcher.switch_to(&*old->sess, &*it->sess);
+    _switcher.switch_to(old ? &*old->sess : nullptr, &*it->sess);
 }
 
 void ConsoleService::left() {
@@ -78,7 +78,7 @@ void ConsoleService::left_unlocked() {
     }
     while(_cons[_console] == nullptr);
     iterator it = _concyc[_console]->current();
-    _switcher.switch_to(&*old->sess, &*it->sess);
+    _switcher.switch_to(old ? &*old->sess : nullptr, &*it->sess);
 }
 
 void ConsoleService::right() {
@@ -89,7 +89,7 @@ void ConsoleService::right() {
     }
     while(_cons[_console] == nullptr);
     iterator it = _concyc[_console]->current();
-    _switcher.switch_to(&*old->sess, &*it->sess);
+    _switcher.switch_to(old ? &*old->sess : nullptr, &*it->sess);
 }
 
 void ConsoleService::switch_to(size_t console) {
@@ -98,7 +98,7 @@ void ConsoleService::switch_to(size_t console) {
         SessionReference *old = active();
         _console = console;
         iterator it = _concyc[_console]->current();
-        _switcher.switch_to(&*old->sess, &*it->sess);
+        _switcher.switch_to(old ? &*old->sess : nullptr, &*it->sess);
     }
 }
 
