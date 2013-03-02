@@ -20,7 +20,6 @@ char* const Video::SCREEN = (char* const)0xB8000;
 int Video::col = 0;
 int Video::row = 0;
 int Video::color = BLACK << 4 | WHITE;
-const char *Video::chars = "0123456789ABCDEF";
 
 void Video::clear() {
     Util::set(SCREEN, 0, ROWS * COLS * 2);
@@ -52,70 +51,6 @@ void Video::putc(char c) {
 
         col++;
     }
-}
-
-void Video::vprintf(const char *fmt, va_list ap) {
-    char c, b, *s;
-    int n;
-    uint u, base;
-    while(1) {
-        // wait for a '%'
-        while((c = *fmt++) != '%') {
-            putc(c);
-            // finished?
-            if(c == '\0')
-                return;
-        }
-
-        switch(c = *fmt++) {
-            // signed integer
-            case 'd':
-            case 'i':
-                n = va_arg(ap, int);
-                putn(n);
-                break;
-
-            // pointer
-            case 'p': {
-                uintptr_t addr = va_arg(ap, uintptr_t);
-                puts("0x");
-                putu(addr, 16);
-            }
-            break;
-
-            // unsigned integer
-            case 'b':
-            case 'u':
-            case 'o':
-            case 'x':
-            case 'X':
-                base = c == 'o' ? 8 : ((c == 'x' || c == 'X') ? 16 : (c == 'b' ? 2 : 10));
-                u = va_arg(ap, uint);
-                putu(u, base);
-                break;
-
-            // string
-            case 's':
-                s = va_arg(ap, char*);
-                puts(s);
-                break;
-
-            // character
-            case 'c':
-                b = (char)va_arg(ap, uint);
-                putc(b);
-                break;
-
-            default:
-                putc(c);
-                break;
-        }
-    }
-}
-
-void Video::puts(const char *str) {
-    while(*str)
-        putc(*str++);
 }
 
 void Video::move() {

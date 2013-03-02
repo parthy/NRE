@@ -15,7 +15,7 @@
  */
 
 #include "keyb.h"
-#include "video.h"
+#include "stdout.h"
 
 bool Keyb::wait_status(uint8_t mask, uint8_t value) {
     uint8_t status;
@@ -76,17 +76,17 @@ void Keyb::init() {
 
     uint8_t cmdbyte = 0;
     if(!read_cmd(KBC_CMD_READ_STATUS, cmdbyte))
-        Video::puts("kb init failed\n");
+        Stdout::printf("kb init failed\n");
 
     // enable irqs
     cmdbyte &= ~KBC_CMDBYTE_TRANSPSAUX;
     if(!write_cmd(KBC_CMD_SET_STATUS, cmdbyte | KBC_CMDBYTE_IRQ1 | KBC_CMDBYTE_IRQ2) ||
        !read_cmd(KBC_CMD_READ_STATUS, cmdbyte)) {
-        Video::puts("kb init failed\n");
+        Stdout::printf("kb init failed\n");
     }
 
     if(!enable_device())
-        Video::puts("kb init failed\n");
+        Stdout::printf("kb init failed\n");
 
     // read available scancodes
     while(read())

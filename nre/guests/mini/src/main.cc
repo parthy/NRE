@@ -16,37 +16,37 @@
 
 #include "util.h"
 #include "paging.h"
-#include "video.h"
 #include "idt.h"
 #include "gdt.h"
 #include "ports.h"
 #include "pit.h"
 #include "pic.h"
 #include "keyb.h"
+#include "stdout.h"
 
 extern "C" int main();
 
 static int counter = 0;
 
 static void divbyzero() {
-    Video::puts("Divide by zero\n");
+    Stdout::printf("Divide by zero\n");
 }
 
 static void gpf() {
-    Video::puts("General protection fault\n");
+    Stdout::printf("General protection fault\n");
 }
 
 static void timer() {
-    Video::printf("Got timer irq %d\n", counter++);
+    Stdout::printf("Got timer irq %d\n", counter++);
     PIC::eoi(0x20);
 }
 
 static void keyboard() {
-    Video::puts("Got keyboard irq: ");
+    Stdout::printf("Got keyboard irq: ");
     uint8_t sc;
     while((sc = Keyb::read()))
-        Video::printf("0x%x ", sc);
-    Video::putc('\n');
+        Stdout::printf("0x%x ", sc);
+    Stdout::printf("\n");
     PIC::eoi(0x21);
 }
 
@@ -61,8 +61,8 @@ int main() {
     IDT::set(0x21, keyboard);
     PIT::init();
     Keyb::init();
-    Video::clear();
-    Video::puts("\n");
+    Stdout::init();
+    Stdout::printf("\n");
 
     Paging::map(0x200000, 0x400000, Paging::PRESENT | Paging::WRITABLE);
     int *addr = reinterpret_cast<int*>(0x200000);
