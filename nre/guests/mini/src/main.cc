@@ -37,16 +37,19 @@ static void gpf() {
 }
 
 static void timer() {
-    Stdout::printf("Got timer irq %d\n", counter++);
+    if(counter++ % 100 == 0)
+        Stdout::printf("Got timer irq %d\n", counter - 1);
     PIC::eoi(0x20);
 }
 
 static void keyboard() {
     Stdout::printf("Got keyboard irq: ");
     uint8_t sc;
+    Video::set_color(Video::RED, Video::BLACK);
     while((sc = Keyb::read()))
         Stdout::printf("0x%x ", sc);
     Stdout::printf("\n");
+    Video::set_color(Video::WHITE, Video::BLACK);
     PIC::eoi(0x21);
 }
 
