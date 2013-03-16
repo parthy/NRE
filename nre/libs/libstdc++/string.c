@@ -115,6 +115,13 @@ size_t strlen(const char *src) {
     return len;
 }
 
+char *strcpy(char *dst, const char *src) {
+    char *res = dst;
+    while(*src)
+        *dst++ = *src++;
+    return res;
+}
+
 int memcmp(const void *str1, const void *str2, size_t count) {
     const uchar *s1 = (const uchar*)str1;
     const uchar *s2 = (const uchar*)str2;
@@ -196,4 +203,39 @@ size_t strcspn(const char *s, const char *reject) {
     while(s[res] && !strchr(reject, s[res]))
         res++;
     return res;
+}
+
+static int isspace(int c) {
+    return c == ' ' || c == '\f' || c == '\n' || c == '\r' || c == '\t' || c == '\v';
+}
+
+unsigned long strtoul(char const *ptr, char const **end, int base) {
+    while(isspace(*ptr))
+        ptr++;
+
+    if(!base) {
+        if(*ptr != '0')
+            base = 10;
+        else if(*(ptr + 1) == 'x')
+            ptr += 2, base = 16;
+        else
+            ptr += 1, base = 8;
+    }
+
+    unsigned long val = 0;
+    unsigned char c;
+    while((c = *ptr)) {
+        int x = (c >= 'a') ? c - 'a' + 10 :
+                (c >= 'A') ? c - 'A' + 10 :
+                (c >= '0') ? c - '0' : 0xff;
+        if(x >= base)
+            break;
+
+        val = val * base + x;
+        ptr++;
+    }
+
+    if(end)
+        *end = ptr;
+    return val;
 }
