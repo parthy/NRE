@@ -81,10 +81,6 @@ void TimerService::portal(TimerSessionData *sess) {
                 uf.finish_input();
 
                 LOG(TIMER_DETAIL, "TIMER: (" << sess->id() << ") Programming for "
-                                             << fmt("%#x", time) << " on "
-                                             << CPU::current().log_id() << "\n");
-
-                LOG(TIMER_DETAIL, "TIMER: (" << sess->id() << ") Programming for "
                                              << fmt(time, "#x") << " on "
                                              << CPU::current().log_id() << "\n");
                 timer->program_timer(sess->data(CPU::current().log_id()), time);
