@@ -85,7 +85,7 @@ public:
             word_t cr8;
             word_t : 64;            // reserved
         #endif
-            word_t dr7, sysenter_cs, sysenter_rsp, sysenter_rip;
+            word_t dr7, sysenter_cs, sysenter_esp, sysenter_eip;
             Descriptor es, cs, ss, ds, fs, gs;
             Descriptor ld, tr, gd, id;
             uint64_t tsc_val, tsc_off;
@@ -99,3 +99,6 @@ public:
 };
 
 }
+
+#undef GREG
+#undef GREG16

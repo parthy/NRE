@@ -50,7 +50,7 @@ OStream & operator<<(OStream &os, const UtcbExcFrameRef &frm) {
         {"inst_len", frm->inst_len}, {"rip", frm->rip}, {"rfl", frm->rfl},
         {"cr0", frm->cr0}, {"cr2", frm->cr2}, {"cr3", frm->cr3},
         {"cr4", frm->cr4}, {"dr7", frm->dr7}, {"sysenter_cs", frm->sysenter_cs},
-        {"sysenter_rsp", frm->sysenter_rsp}, {"sysenter_rip", frm->sysenter_rip}
+        {"sysenter_rsp", frm->sysenter_esp}, {"sysenter_rip", frm->sysenter_eip}
     };
     for(size_t i = 0; i < ARRAY_SIZE(words); ++i)
         os << "\t" << words[i].name << ": " << fmt(words[i].val, "#0x", sizeof(words[i].val) * 2) << "\n";
