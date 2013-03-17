@@ -20,8 +20,9 @@
 #include <kobj/Sc.h>
 #include <services/Storage.h>
 
-#include "bus/motherboard.h"
-#include "bus/message.h"
+#include <nul/motherboard.h>
+#include <nul/message.h>
+#include <host/dma.h>
 
 class StorageDevice {
 public:
@@ -36,22 +37,39 @@ public:
         gt->start();
     }
 
-    void get_params(nre::Storage::Parameter *params) {
-        *params = _sess.get_params();
+    MessageDisk::Status get_params(DiskParameter &params) {
+        nre::Storage::Parameter res = _sess.get_params();
+        params.flags = res.flags;
+        params.maxrequestcount = res.max_requests;
+        params.sectors = res.sectors;
+        params.sectorsize = res.sector_size;
+        memcpy(params.name, res.name,
+               nre::Math::min<size_t>(sizeof(params.name), sizeof(res.name)));
+        params.name[sizeof(params.name) - 1] = '\0';
+        return MessageDisk::DISK_OK;
     }
-    void read(nre::Storage::tag_type tag, nre::Storage::sector_type sector,
-              const nre::Storage::dma_type *dma) {
-        _sess.read(tag, sector, *dma);
+
+    void read(unsigned long tag, unsigned long long sector, const DmaDescriptor *dma, size_t count) {
+        nre::Storage::dma_type sdma;
+        convert_dma(sdma, dma, count);
+        _sess.read(tag, sector, sdma);
     }
-    void write(nre::Storage::tag_type tag, nre::Storage::sector_type sector,
-               const nre::Storage::dma_type *dma) {
-        _sess.write(tag, sector, *dma);
+    void write(unsigned long tag, unsigned long long sector, const DmaDescriptor *dma, size_t count) {
+        nre::Storage::dma_type sdma;
+        convert_dma(sdma, dma, count);
+        _sess.write(tag, sector, sdma);
     }
-    void flush_cache(nre::Storage::tag_type tag) {
+
+    void flush_cache(unsigned long tag) {
         _sess.flush(tag);
     }
 
 private:
+    void convert_dma(nre::Storage::dma_type &dst, const DmaDescriptor *dma, size_t count) {
+        while(count-- > 0)
+            dst.push(nre::DMADesc(dma->byteoffset, dma->bytecount));
+    }
+
     static void thread(void*) {
         StorageDevice *sd = nre::Thread::current()->get_tls<StorageDevice*>(nre::Thread::TLS_PARAM);
         while(1) {

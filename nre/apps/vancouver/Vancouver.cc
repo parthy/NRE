@@ -18,11 +18,14 @@
 #include <kobj/Sm.h>
 #include <kobj/Ports.h>
 #include <services/Reboot.h>
+#include <stream/IStringStream.h>
 #include <util/TimeoutList.h>
 #include <util/Util.h>
 
-#include "bus/motherboard.h"
-#include "bus/vcpu.h"
+#include <nul/motherboard.h>
+#include <nul/vcpu.h>
+#include <service/params.h>
+
 #include "Vancouver.h"
 #include "Timeouts.h"
 #include "VCPUBackend.h"
@@ -32,14 +35,21 @@ using namespace nre;
 static size_t ncpu = 1;
 static DataSpace *guest_mem = nullptr;
 static size_t guest_size = 0;
+static size_t console = 1;
+static String constitle("VM");
 nre::UserSm globalsm(0);
 
-PARAM_ALIAS(PC_PS2, "an alias to create an PS2 compatible PC",
-            " mem:0,0xa0000 mem:0x100000 ioio nullio:0x80 pic:0x20,,0x4d0 pic:0xa0,2,0x4d1"
-            " pit:0x40,0 scp:0x92,0x61 kbc:0x60,1,12 keyb:0,0x10000 mouse:1,0x10001 rtc:0x70,8"
-            " serial:0x3f8,0x4,0x4711 hostsink:0x4712,80 vga:0x03c0"
-            " vbios_disk vbios_keyboard vbios_mem vbios_time vbios_reset vbios_multiboot"
-            " msi ioapic pcihostbridge:0,0x10,0xcf8,0xe0000000 pmtimer:0x8000 vcpus")
+PARAM_HANDLER(PC_PS2, "an alias to create an PS2 compatible PC") {
+    static const char *pcps2_params[] = {
+        "mem:0,0xa0000", "mem:0x100000", "ioio", "nullio:0x80", "pic:0x20,,0x4d0", "pic:0xa0,2,0x4d1",
+        "pit:0x40,0", "scp:0x92,0x61", "kbc:0x60,1,12", "keyb:0,0x10000", "mouse:1,0x10001",
+        "rtc:0x70,8", "serial:0x3f8,0x4,0x4711", "hostsink:0x4712,80", "vga:0x03c0",
+        "vbios_disk", "vbios_keyboard", "vbios_mem", "vbios_time", "vbios_reset", "vbios_multiboot",
+        "msi", "ioapic", "pcihostbridge:0,0x10,0xcf8,0xe0000000", "pmtimer:0x8000", "vcpus",
+    };
+    for(size_t i = 0; i < ARRAY_SIZE(pcps2_params); ++i)
+        mb.handle_arg(pcps2_params[i]);
+}
 
 PARAM_HANDLER(ncpu, "ncpu - change the number of vcpus that are created") {
     ncpu = argv[0];
@@ -48,11 +58,16 @@ PARAM_HANDLER(m, "m - specify the amount of memory for the guest in MiB") {
     guest_size = argv[0] * 1024 * 1024;
     guest_mem = new DataSpace(guest_size, DataSpaceDesc::ANONYMOUS,
                               DataSpaceDesc::RWX | DataSpaceDesc::BIGPAGES, 0, 0,
-                              Math::next_pow2_shift(ExecEnv::BIG_PAGE_SIZE) - ExecEnv::PAGE_SHIFT);
+                              nre::Math::next_pow2_shift(ExecEnv::BIG_PAGE_SIZE) - ExecEnv::PAGE_SHIFT);
 }
 PARAM_HANDLER(vcpus, " vcpus - instantiate the vcpus defined with 'ncpu'") {
-    for(size_t count = 0; count < ncpu; count++)
-        mb.parse_args("vcpu halifax vbios lapic");
+    const char *vcpu_params[] = {
+        "vcpu", "halifax", "vbios", "lapic"
+    };
+    for(size_t count = 0; count < ncpu; count++) {
+        for(size_t i = 0; i < ARRAY_SIZE(vcpu_params); ++i)
+            mb.handle_arg(vcpu_params[i]);
+    }
 }
 
 void Vancouver::reset() {
@@ -82,7 +97,7 @@ bool Vancouver::receive(CpuMessage &msg) {
             timevalue_t tsc = Util::tsc();
             msg.cpu->eax = tsc;
             msg.cpu->edx = tsc >> 32;
-            msg.cpu->ecx = Hip::get().freq_tsc;
+            msg.cpu->ecx = nre::Hip::get().freq_tsc;
         }
         break;
 
@@ -145,10 +160,10 @@ bool Vancouver::receive(MessageHostOp &msg) {
             break;
 
         case MessageHostOp::OP_GET_MODULE: {
-            const Hip &hip = Hip::get();
+            const nre::Hip &hip = nre::Hip::get();
             uintptr_t destaddr = reinterpret_cast<uintptr_t>(msg.start);
             uint module = msg.module - 1;
-            Hip::mem_iterator it;
+            nre::Hip::mem_iterator it;
             for(it = hip.mem_begin(), ++it; it != hip.mem_end(); ++it) {
                 if(it->type == HipMem::MB_MODULE && module-- == 0)
                     break;
@@ -199,7 +214,7 @@ bool Vancouver::receive(MessageHostOp &msg) {
 
         case MessageHostOp::OP_VCPU_CREATE_BACKEND: {
             cpu_t cpu = CPU::current().log_id();
-            VCPUBackend *v = new VCPUBackend(&_mb, msg.vcpu, Hip::get().has_svm(), cpu);
+            VCPUBackend *v = new VCPUBackend(&_mb, msg.vcpu, nre::Hip::get().has_svm(), cpu);
             msg.value = reinterpret_cast<ulong>(v);
             msg.vcpu->executor.add(this, receive_static<CpuMessage> );
             _vcpus.append(v);
@@ -224,12 +239,6 @@ bool Vancouver::receive(MessageHostOp &msg) {
         }
         break;
 
-        case MessageHostOp::OP_ALLOC_SEMAPHORE: {
-            Sm *sm = new Sm(0);
-            msg.value = sm->sel();
-        }
-        break;
-
         case MessageHostOp::OP_ALLOC_SERVICE_THREAD: {
             assert(false);
             /* TODO
@@ -242,18 +251,7 @@ bool Vancouver::receive(MessageHostOp &msg) {
         }
         break;
 
-        case MessageHostOp::OP_CREATE_EC4PT:
-            assert(false);
-            /* TODO
-               msg._create_ec4pt.ec = create_ec4pt(msg.obj,msg._create_ec4pt.cpu,
-                    Config::EXC_PORTALS * msg._create_ec4pt.cpu,msg._create_ec4pt.utcb_out,
-                    msg._create_ec4pt.ec);
-               return msg._create_ec4pt.ec != 0;
-             */
-            break;
-
         case MessageHostOp::OP_VIRT_TO_PHYS:
-        case MessageHostOp::OP_REGISTER_SERVICE:
         case MessageHostOp::OP_ALLOC_SERVICE_PORTAL:
         case MessageHostOp::OP_WAIT_CHILD:
         default:
@@ -263,11 +261,11 @@ bool Vancouver::receive(MessageHostOp &msg) {
     return res;
 }
 
-bool Vancouver::receive(MessagePciConfig &msg) {
+bool Vancouver::receive(MessagePciConfig &) {
     return false; // TODO !Sigma0Base::pcicfg(msg);
 }
 
-bool Vancouver::receive(MessageAcpi &msg) {
+bool Vancouver::receive(MessageAcpi &) {
     return false; // TODO !Sigma0Base::acpi(msg);
 }
 
@@ -287,7 +285,10 @@ bool Vancouver::receive(MessageTimer &msg) {
 }
 
 bool Vancouver::receive(MessageTime &msg) {
-    _timeouts.time(msg.timestamp, msg.wallclocktime);
+    timevalue_t ts, wallclock;
+    _timeouts.time(ts, wallclock);
+    msg.timestamp = ts;
+    msg.wallclocktime = wallclock;
     return true;
 }
 
@@ -298,39 +299,62 @@ bool Vancouver::receive(MessageLegacy &msg) {
     return true;
 }
 
-bool Vancouver::receive(MessageConsoleView &msg) {
-    if(msg.type != MessageConsoleView::TYPE_GET_INFO)
-        return false;
-    msg.sess = &_conssess;
-    return true;
+bool Vancouver::receive(MessageConsole &msg) {
+    switch(msg.type) {
+        case MessageConsole::TYPE_ALLOC_CLIENT:
+            ::Logging::panic("console: ALLOC_CLIENT not supported.\n");
+        case MessageConsole::TYPE_ALLOC_VIEW:
+            assert(msg.ptr and msg.regs);
+            msg.view = _console.add_view(msg.name, msg.ptr, msg.size, msg.regs);
+            _console.set_view(msg.view);
+            return true;
+        case MessageConsole::TYPE_SWITCH_VIEW:
+            _console.set_view(msg.view);
+            return true;
+        case MessageConsole::TYPE_GET_MODEINFO:
+        case MessageConsole::TYPE_GET_FONT:
+        case MessageConsole::TYPE_KEY:
+        case MessageConsole::TYPE_RESET:
+        case MessageConsole::TYPE_START:
+        case MessageConsole::TYPE_KILL:
+        case MessageConsole::TYPE_DEBUG:
+        default:
+            break;
+    }
+    return false;
 }
 
 bool Vancouver::receive(MessageDisk &msg) {
-    if(msg.type != MessageDisk::DISK_CONNECT &&
-       (msg.disknr >= ARRAY_SIZE(_stdevs) || !_stdevs[msg.disknr]))
+    if(msg.disknr >= ARRAY_SIZE(_stdevs))
         return false;
+
+    // storage is optional
+    if(!_stdevs[msg.disknr]) {
+        try {
+            _stdevs[msg.disknr] = new StorageDevice(_mb.bus_diskcommit, *guest_mem, msg.disknr);
+        }
+        catch(const Exception &e) {
+            Serial::get() << "Disk connect failed: " << e.msg() << "\n";
+            msg.error = MessageDisk::DISK_STATUS_DEVICE;
+            return false;
+        }
+    }
+
     switch(msg.type) {
-        case MessageDisk::DISK_CONNECT:
-            // storage is optional
-            try {
-                if(!_stdevs[msg.disknr])
-                    _stdevs[msg.disknr] = new StorageDevice(_mb.bus_diskcommit, *guest_mem, msg.disknr);
-                _stdevs[msg.disknr]->get_params(msg.params);
-                msg.error = MessageDisk::DISK_OK;
-            }
-            catch(const Exception &e) {
-                Serial::get() << "Disk connect failed: " << e.msg() << "\n";
-                msg.error = MessageDisk::DISK_STATUS_DEVICE;
-            }
+        case MessageDisk::DISK_GET_PARAMS:
+            msg.error = _stdevs[msg.disknr]->get_params(*msg.params);
             return true;
+
         case MessageDisk::DISK_READ:
-            _stdevs[msg.disknr]->read(msg.usertag, msg.sector, msg.dma);
+            _stdevs[msg.disknr]->read(msg.usertag, msg.sector, msg.dma, msg.dmacount);
             msg.error = MessageDisk::DISK_OK;
             return true;
+
         case MessageDisk::DISK_WRITE:
-            _stdevs[msg.disknr]->write(msg.usertag, msg.sector, msg.dma);
+            _stdevs[msg.disknr]->write(msg.usertag, msg.sector, msg.dma, msg.dmacount);
             msg.error = MessageDisk::DISK_OK;
             return true;
+
         case MessageDisk::DISK_FLUSH_CACHE:
             _stdevs[msg.disknr]->flush_cache(msg.usertag);
             msg.error = MessageDisk::DISK_OK;
@@ -342,7 +366,7 @@ bool Vancouver::receive(MessageDisk &msg) {
 void Vancouver::keyboard_thread(void*) {
     Vancouver *vc = Thread::current()->get_tls<Vancouver*>(Thread::TLS_PARAM);
     while(1) {
-        Console::ReceivePacket pk = vc->_conssess.receive();
+        nre::Console::ReceivePacket pk = vc->_conssess.receive();
 
         if((pk.flags & Keyboard::RELEASE) && (pk.flags & Keyboard::LCTRL)) {
             switch(pk.keycode) {
@@ -359,8 +383,8 @@ void Vancouver::keyboard_thread(void*) {
                 break;
 
                 case Keyboard::VK_S: {
-                    CpuEvent msg(VCVCpu::EVENT_DEBUG);
-                    for(VCVCpu *vcpu = vc->_mb.last_vcpu; vcpu; vcpu = vcpu->get_last())
+                    CpuEvent msg(::VCpu::EVENT_DEBUG);
+                    for(::VCpu *vcpu = vc->_mb.last_vcpu; vcpu; vcpu = vcpu->get_last())
                         vcpu->bus_event.send(msg);
                     continue;
                 }
@@ -392,10 +416,9 @@ void Vancouver::vmmng_thread(void*) {
     }
 }
 
-void Vancouver::create_devices(const char *args) {
+void Vancouver::create_devices(const char **args, size_t count) {
     _mb.bus_hostop.add(this, receive_static<MessageHostOp> );
-    _mb.bus_consoleview.add(this, receive_static<MessageConsoleView> );
-    // TODO _mb.bus_console.add(this,receive_static<MessageConsole>);
+    _mb.bus_console.add(this,receive_static<MessageConsole>);
     _mb.bus_disk.add(this, receive_static<MessageDisk> );
     _mb.bus_timer.add(this, receive_static<MessageTimer> );
     _mb.bus_time.add(this, receive_static<MessageTime> );
@@ -403,12 +426,13 @@ void Vancouver::create_devices(const char *args) {
     _mb.bus_hwpcicfg.add(this, receive_static<MessageHwPciConfig> );
     _mb.bus_acpi.add(this, receive_static<MessageAcpi> );
     _mb.bus_legacy.add(this, receive_static<MessageLegacy> );
-    _mb.parse_args(args);
+    for(size_t i = 0; i < count; ++i)
+        _mb.handle_arg(args[i]);
 }
 
 void Vancouver::create_vcpus() {
     // init VCPUs
-    for(VCVCpu *vcpu = _mb.last_vcpu; vcpu; vcpu = vcpu->get_last()) {
+    for(::VCpu *vcpu = _mb.last_vcpu; vcpu; vcpu = vcpu->get_last()) {
         // init CPU strings
         const char *short_name = "NOVA microHV";
         vcpu->set_cpuid(0, 1, reinterpret_cast<const unsigned *>(short_name)[0]);
@@ -428,24 +452,7 @@ void Vancouver::create_vcpus() {
     }
 }
 
-static const char *argv_to_str(int argc, char *argv[]) {
-    static char buf[1024];
-    size_t pos = 0;
-    for(int i = 1; i < argc; ++i) {
-        size_t len = strlen(argv[i]);
-        if(pos + len + 1 > sizeof(buf) - 1)
-            break;
-        memcpy(buf + pos, argv[i], len);
-        buf[pos + len] = ' ';
-        pos += len + 1;
-    }
-    buf[pos] = '\0';
-    return buf;
-}
-
-int main(int argc, char *argv[]) {
-    size_t console = 1;
-    String constitle("VM");
+int main(int argc, char **argv) {
     for(int i = 1; i < argc; ++i) {
         if(strncmp(argv[i], "console:", 8) == 0)
             console = IStringStream::read_from<size_t>(argv[i] + 8);
@@ -453,7 +460,7 @@ int main(int argc, char *argv[]) {
             constitle = String(argv[i] + 10);
     }
 
-    Vancouver *v = new Vancouver(argv_to_str(argc, argv), console, constitle);
+    Vancouver *v = new Vancouver(const_cast<const char**>(argv + 1), argc - 1, console, constitle);
     v->reset();
 
     Sm sm(0);

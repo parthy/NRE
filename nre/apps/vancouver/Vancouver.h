@@ -22,20 +22,23 @@
 #include <kobj/Sc.h>
 #include <mem/DataSpace.h>
 #include <services/VMManager.h>
+#include <services/Console.h>
 
-#include "bus/motherboard.h"
+#include <nul/motherboard.h>
+
 #include "Timeouts.h"
 #include "StorageDevice.h"
 #include "VCPUBackend.h"
+#include "ConsoleBackend.h"
 
 extern nre::UserSm globalsm;
 
 class Vancouver : public StaticReceiver<Vancouver> {
 public:
-    explicit Vancouver(const char *args, size_t console, const nre::String &constitle)
-        : _mb(), _timeouts(_mb), _conssess("console", console, constitle), _vmmng(), _vcpus(),
-          _stdevs() {
-        create_devices(args);
+    explicit Vancouver(const char **args, size_t count, size_t console, const nre::String &constitle)
+        : _clock(nre::Hip::get().freq_tsc * 1000), _mb(&_clock, nullptr), _timeouts(_mb),
+          _console(this), _conssess("console", console, constitle), _vmmng(), _vcpus(), _stdevs() {
+        create_devices(args, count);
         create_vcpus();
 
         nre::GlobalThread *input = nre::GlobalThread::create(
@@ -56,6 +59,13 @@ public:
         }
     }
 
+    nre::ConsoleSession &console() {
+        return _conssess;
+    }
+    Timeouts &timeouts() {
+        return _timeouts;
+    }
+
     void reset();
     bool receive(CpuMessage &msg);
     bool receive(MessageHostOp &msg);
@@ -64,17 +74,19 @@ public:
     bool receive(MessageTimer &msg);
     bool receive(MessageTime &msg);
     bool receive(MessageLegacy &msg);
-    bool receive(MessageConsoleView &msg);
+    bool receive(MessageConsole &msg);
     bool receive(MessageDisk &msg);
 
 private:
     static void keyboard_thread(void*);
     static void vmmng_thread(void*);
-    void create_devices(const char *args);
+    void create_devices(const char **args, size_t count);
     void create_vcpus();
 
+    Clock _clock;
     Motherboard _mb;
     Timeouts _timeouts;
+    ConsoleBackend _console;
     nre::ConsoleSession _conssess;
     nre::VMManagerSession *_vmmng;
     nre::SList<VCPUBackend> _vcpus;

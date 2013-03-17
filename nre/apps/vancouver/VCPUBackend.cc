@@ -20,6 +20,8 @@
 
 using namespace nre;
 
+typedef ::VCpu SeoulVCPU;
+
 Motherboard *VCPUBackend::_mb = 0;
 bool VCPUBackend::_tsc_offset = false;
 bool VCPUBackend::_rdtsc_exit = false;
@@ -71,7 +73,7 @@ capsel_t VCPUBackend::get_portals(bool use_svm) {
 
 void VCPUBackend::handle_io(bool is_in, unsigned io_order, unsigned port) {
     UtcbExcFrameRef uf;
-    VCVCpu *vcpu = Thread::current()->get_tls<VCVCpu*>(Thread::TLS_PARAM);
+    SeoulVCPU *vcpu = Thread::current()->get_tls<SeoulVCPU*>(Thread::TLS_PARAM);
 
     CpuMessage msg(is_in, reinterpret_cast<CpuState *>(Thread::current()->utcb()),
                    io_order, port, &uf->eax, uf->mtd);
@@ -88,7 +90,7 @@ void VCPUBackend::handle_io(bool is_in, unsigned io_order, unsigned port) {
 
 void VCPUBackend::handle_vcpu(capsel_t pid, bool skip, CpuMessage::Type type) {
     UtcbExcFrameRef uf;
-    VCVCpu *vcpu = Thread::current()->get_tls<VCVCpu*>(Thread::TLS_PARAM);
+    SeoulVCPU *vcpu = Thread::current()->get_tls<SeoulVCPU*>(Thread::TLS_PARAM);
 
     CpuMessage msg(type, reinterpret_cast<CpuState*>(Thread::current()->utcb()), uf->mtd);
     if(skip)
@@ -130,7 +132,7 @@ void VCPUBackend::handle_vcpu(capsel_t pid, bool skip, CpuMessage::Type type) {
 }
 
 Crd VCPUBackend::lookup(uintptr_t base, size_t size, uintptr_t hotspot) {
-    Crd crd((base + hotspot) >> ExecEnv::PAGE_SHIFT, Math::next_pow2_shift(size), Crd::MEM);
+    Crd crd((base + hotspot) >> ExecEnv::PAGE_SHIFT, nre::Math::next_pow2_shift(size), Crd::MEM);
     Crd res = Syscalls::lookup(crd);
     if(res.is_null()) {
         // TODO perhaps dataspaces should provide something like touch?
@@ -153,7 +155,7 @@ Crd VCPUBackend::lookup(uintptr_t base, size_t size, uintptr_t hotspot) {
 
 bool VCPUBackend::handle_memory(bool need_unmap) {
     UtcbExcFrameRef uf;
-    VCVCpu *vcpu = Thread::current()->get_tls<VCVCpu*>(Thread::TLS_PARAM);
+    SeoulVCPU *vcpu = Thread::current()->get_tls<SeoulVCPU*>(Thread::TLS_PARAM);
     //Serial::get().writef("NPT fault @ %p for %#Lx, error %#Lx\n",uf->eip,uf->qual[1],uf->qual[0]);
 
     MessageMemRegion msg(uf->qual[1] >> ExecEnv::PAGE_SHIFT);

@@ -24,7 +24,7 @@
 #include <util/TimeoutList.h>
 #include <util/ScopedLock.h>
 
-#include "bus/motherboard.h"
+#include <nul/motherboard.h>
 
 extern nre::UserSm globalsm;
 
@@ -40,6 +40,10 @@ public:
             timer_thread, nre::CPU::current().log_id(), "vmm-timeouts");
         gt->set_tls<Timeouts*>(nre::Thread::TLS_PARAM, this);
         gt->start();
+    }
+
+    nre::TimerSession &session() {
+        return _timer;
     }
 
     size_t alloc() {

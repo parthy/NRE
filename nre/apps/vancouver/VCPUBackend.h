@@ -28,9 +28,9 @@
 #include <Assert.h>
 #include <Compiler.h>
 
-#include "bus/motherboard.h"
-#include "bus/profile.h"
-#include "bus/vcpu.h"
+#include <nul/motherboard.h>
+#include <nul/vcpu.h>
+#include <service/profile.h>
 
 class VCPUBackend : public nre::SListItem {
     enum {
@@ -44,10 +44,10 @@ class VCPUBackend : public nre::SListItem {
     };
 
 public:
-    VCPUBackend(Motherboard *mb, VCVCpu *vcpu, bool use_svm, cpu_t cpu)
+    VCPUBackend(Motherboard *mb, VCpu *vcpu, bool use_svm, cpu_t cpu)
         : SListItem(), _ec(nre::LocalThread::create(cpu)), _caps(get_portals(use_svm)), _sm(0),
           _vcpu(cpu, _caps, "vmm-vcpu") {
-        _ec->set_tls<VCVCpu*>(nre::Thread::TLS_PARAM, vcpu);
+        _ec->set_tls<VCpu*>(nre::Thread::TLS_PARAM, vcpu);
         _vcpu.start();
         _mb = mb;
     }

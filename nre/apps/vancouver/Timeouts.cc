@@ -18,7 +18,8 @@
 #include <kobj/Sm.h>
 #include <CPU.h>
 
-#include "bus/profile.h"
+#include <service/profile.h>
+
 #include "Timeouts.h"
 
 using namespace nre;
@@ -38,7 +39,7 @@ void Timeouts::trigger() {
     // TODO it can't be correct to not grab _sm here, because we might access stuff from
     // different threads here. but if we grab it here, we deadlock ourself because the devices
     // on the bus might call e.g. alloc().
-    timevalue_t now = _mb.clock().source_time();
+    timevalue_t now = _mb.clock()->time();
     // Force time reprogramming. Otherwise, we might not reprogram a
     // timer, if the timeout event reached us too early.
     _last_to = NO_TIMEOUT;

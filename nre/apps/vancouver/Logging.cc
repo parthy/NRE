@@ -1,7 +1,5 @@
-/** @file
- * Shared SATA definitions.
- *
- * Copyright (C) 2009, Bernhard Kauer <bk@vmmon.org>
+/*
+ * Copyright (C) 2013, Nils Asmussen <nils@os.inf.tu-dresden.de>
  * Economic rights: Technische Universitaet Dresden (Germany)
  *
  * This file is part of Vancouver.
@@ -16,19 +14,25 @@
  * General Public License version 2 for more details.
  */
 
-#pragma once
+#include <service/logging.h>
+#include <stream/Serial.h>
+#include <util/Util.h>
 
-class FisReceiver {
-protected:
-    FisReceiver *_peer;
+using namespace nre;
 
-public:
-    FisReceiver() : _peer(0) {
-    }
+void Logging::panic(const char *format, ...) {
+    va_list ap;
+    va_start(ap, format);
+    nre::Util::vpanic(format, ap);
+}
 
-    virtual void receive_fis(size_t fislen, unsigned *fis) = 0;
+void Logging::printf(const char *format, ...) {
+    va_list ap;
+    va_start(ap, format);
+    Serial::get().vwritef(format, ap);
+    va_end(ap);
+}
 
-    void set_peer(FisReceiver *peer) {
-        _peer = peer;
-    }
-};
+void Logging::vprintf(const char *format, va_list &ap) {
+    Serial::get().vwritef(format, ap);
+}
