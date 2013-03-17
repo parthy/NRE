@@ -26,13 +26,13 @@ namespace nre {
 
 class Util {
 public:
-    static void vpanic(const char *fmt, va_list ap) {
+    NORETURN static void vpanic(const char *fmt, va_list ap) {
         static char msg[256];
         OStringStream os(msg, sizeof(msg));
         os.vwritef(fmt, ap);
         throw Exception(E_FAILURE, msg);
     }
-    static void panic(const char *fmt, ...) {
+    NORETURN static void panic(const char *fmt, ...) {
         va_list ap;
         va_start(ap, fmt);
         vpanic(fmt, ap);
