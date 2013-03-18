@@ -18,4 +18,4 @@ else:
     revision = resout.rstrip()
 myenv['CXXFLAGS'] += ' -DNRE_REV=\'\"' + revision + '\"\''
 
-myenv.NREProgram(myenv, 'root', Glob('*.cc'))
+myenv.NREProgram(myenv, 'root', Glob('*.cc'), fixedaddr = True)

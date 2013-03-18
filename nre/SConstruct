@@ -81,11 +81,11 @@ if target == 'x86_64':
 else:
     env.Append(LINK_ADDR = 0x100000)
 
-def NREProgram(env, target, source, libs = [], cpppath = []):
+def NREProgram(env, target, source, libs = [], cpppath = [], fixedaddr = False):
     # for better debugging: put every executable at a different address
     myenv = env.Clone()
     myenv.Replace(CPPPATH = [myenv['CPPPATH']] + cpppath)
-    if target != 'vancouver' and target != 'root':
+    if not fixedaddr:
         myenv.Append(LINKFLAGS = ' -Wl,--section-start=.init=' + ("0x%x" % env['LINK_ADDR']))
         env['LINK_ADDR'] += 0x100000
     prog = myenv.Program(
