@@ -115,7 +115,7 @@ bool Vancouver::receive(MessageHostOp &msg) {
     bool res = true;
     switch(msg.type) {
         case MessageHostOp::OP_ALLOC_IOIO_REGION: {
-            new Ports(msg.value >> 8, msg.value & 0xff);
+            new Ports(msg.value >> 8, 1 << (msg.value & 0xff));
             Serial::get() << "alloc ioio region " << fmt(msg.value, "x") << "\n";
         }
         break;
