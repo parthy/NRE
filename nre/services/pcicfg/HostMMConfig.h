@@ -60,7 +60,7 @@ class HostMMConfig : public Config {
             return _ds.phys();
         }
         bool contains(nre::BDF bdf, size_t offset) const {
-            return offset < 0x400 && nre::Math::in_range(bdf.value(), _start, _size);
+            return offset < 0x1000 && nre::Math::in_range(bdf.value(), _start, _size);
         }
         value_type read(nre::BDF bdf, size_t offset) const {
             return *field(bdf, offset);
@@ -71,7 +71,7 @@ class HostMMConfig : public Config {
 
     private:
         uint *field(nre::BDF bdf, size_t offset) const {
-            return _mmconfig + (bdf.value() << 10) + (offset & 0x3FF);
+            return _mmconfig + (bdf.value() << 10) + ((offset >> 2) & 0x3FF);
         }
 
     private:
