@@ -94,7 +94,7 @@ static void input_thread(void*) {
                             vml.add(cm, &*it, cpucyc.next()->log_id());
                         }
                         catch(const Exception &e) {
-                            Serial::get() << "Start of '" << it->name() << "' failed: " << e.msg();
+                            Serial::get() << "Start of '" << it->name() << "' failed: " << e.msg() << "\n";
                         }
                     }
                 }
