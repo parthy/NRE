@@ -28,7 +28,7 @@ class ConsoleService;
 class ConsoleSessionData;
 
 class ViewSwitcher {
-    static const size_t DS_SIZE       = nre::ExecEnv::PAGE_SIZE * Screen::PAGES;
+    static const size_t DS_SIZE       = nre::ExecEnv::PAGE_SIZE;
     static const uint COLOR           = 0x1F;
     static const uint SWITCH_TIME     = 1000; // ms
     static const uint REFRESH_DELAY   = 25;   // ms
@@ -57,6 +57,5 @@ private:
     nre::Consumer<SwitchCommand> _cons;
     nre::GlobalThread *_ec;
     ConsoleService *_srv;
-    static char _backup[];
     static char _buffer[];
 };

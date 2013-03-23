@@ -8,11 +8,11 @@ bin/apps/keyboard provides=keyboard
 bin/apps/reboot provides=reboot
 bin/apps/pcicfg provides=pcicfg
 bin/apps/timer provides=timer
-bin/apps/console provides=console
+bin/apps/console provides=console modifier=17
 bin/apps/sysinfo
-bin/apps/vancouver mods=following lastmod m:64 ncpu:1 PC_PS2
-dist/imgs/escape.bin videomode=vga
-dist/imgs/escape_romdisk.bin /dev/romdisk rom://dist/imgs/escape.iso
-dist/imgs/escape_cmos.bin /dev/cmos
+bin/apps/vancouver mods=following lastmod m:64 ncpu:1 vga_fbsize:4096 PC_PS2
+dist/imgs/escape.bin
+dist/imgs/escape_romdisk.bin /dev/romdisk /system/mbmods/3
+dist/imgs/escape_rtc.bin /dev/rtc
 dist/imgs/escape_fs.bin /dev/fs /dev/romdisk iso9660
 dist/imgs/escape.iso

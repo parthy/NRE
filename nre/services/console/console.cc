@@ -30,7 +30,7 @@ static void input_thread(void*) {
         if(!srv->handle_keyevent(*pk)) {
             ConsoleService::SessionReference *sess = srv->active();
             if(sess && sess->sess->prod()) {
-                Console::ReceivePacket rpk;
+                nre::Console::ReceivePacket rpk;
                 rpk.flags = pk->flags;
                 rpk.scancode = pk->scancode;
                 rpk.keycode = pk->keycode;

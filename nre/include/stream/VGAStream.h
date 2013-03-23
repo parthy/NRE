@@ -25,10 +25,19 @@
 namespace nre {
 
 /**
- * This class provides means to read from or write to the console.
+ * This class provides means to read from or write to a VGA console.
  */
-class ConsoleStream : public IStream, public OStream {
+class VGAStream : public IStream, public OStream {
 public:
+    static const uint COLS              = 80;
+    static const uint ROWS              = 25;
+    static const uint TAB_WIDTH         = 4;
+    static const size_t BUF_SIZE        = COLS * 2 + 1;
+    static const size_t PAGES           = 32;
+    static const size_t TEXT_OFF        = 0x18000;
+    static const size_t TEXT_PAGES      = 8;
+    static const size_t PAGE_SIZE       = 0x1000;
+
     /**
      * Constructor
      *
@@ -36,8 +45,19 @@ public:
      * @param page the console-page to write to
      * @param echo whether to echo read characters
      */
-    explicit ConsoleStream(ConsoleSession &sess, uint page = 0, bool echo = true)
+    explicit VGAStream(ConsoleSession &sess, uint page = 0, bool echo = true)
         : _sess(sess), _page(page), _pos(0), _color(0x0F), _echo(echo) {
+    }
+
+    /**
+     * Clears the given page
+     *
+     * @param page the page
+     */
+    void clear(uint page) {
+        assert(page < TEXT_PAGES);
+        uintptr_t addr = _sess.screen().virt() + TEXT_OFF + page * PAGE_SIZE;
+        memset(reinterpret_cast<void*>(addr), 0, PAGE_SIZE);
     }
 
     /**
@@ -66,13 +86,13 @@ public:
      * @return the current x-position on the screen
      */
     uint x() const {
-        return _pos % Console::COLS;
+        return _pos % COLS;
     }
     /**
      * @return the current y-position on the screen
      */
     uint y() const {
-        return _pos / Console::ROWS;
+        return _pos / ROWS;
     }
 
     /**
@@ -82,7 +102,7 @@ public:
      * @param y the y-position
      */
     void pos(uint x, uint y) {
-        _pos = y * Console::COLS + x;
+        _pos = y * COLS + x;
     }
 
     /**
@@ -108,7 +128,7 @@ public:
      * @param pos the position (will be updated)
      */
     void put(ushort value, uint &pos) {
-        uintptr_t addr = _sess.screen().virt() + Console::TEXT_OFF + _page * Console::PAGE_SIZE;
+        uintptr_t addr = _sess.screen().virt() + TEXT_OFF + _page * PAGE_SIZE;
         put(value, reinterpret_cast<ushort*>(addr), pos);
     }
 

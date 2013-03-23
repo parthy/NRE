@@ -748,13 +748,10 @@ void ChildManager::switch_to(UtcbFrameRef &uf, Child *c) {
             memcpy(reinterpret_cast<char*>(dst->desc().origin()),
                    reinterpret_cast<char*>(src->desc().origin()),
                    src->desc().size());
-            // change mapping
+            // now swap the two dataspaces
             srcorg = src->desc().origin();
             dstorg = dst->desc().origin();
-            src->desc().origin(dstorg);
-            dst->desc().origin(srcorg);
-            src->all_perms(0);
-            dst->all_perms(0);
+            src->swap_backend(dst);
         }
 
         // now change the mapping for all other childs that have one of these dataspaces
@@ -775,14 +772,10 @@ void ChildManager::switch_to(UtcbFrameRef &uf, Child *c) {
                 // also reset the information here
                 it->_last_fault_addr = 0;
                 it->_last_fault_cpu = 0;
-                if(src) {
-                    src->desc().origin(dstorg);
-                    src->all_perms(0);
-                }
-                if(dst) {
-                    dst->desc().origin(srcorg);
-                    src->all_perms(0);
-                }
+                if(src)
+                    src->switch_to(dstorg);
+                if(dst)
+                    dst->switch_to(srcorg);
             }
         }
 
@@ -932,6 +925,8 @@ void ChildManager::Portals::ex_pf(Child *c) {
                 // properly aligned, which is made sure by root. otherwise we might leave the ds
                 pfpage &= ~(ExecEnv::BIG_PAGE_SIZE - 1);
             }
+
+            // build CapRange
             uintptr_t src = ds->origin(pfpage);
             CapRange cr(src >> ExecEnv::PAGE_SHIFT, pages, Crd::MEM | (perms << 2),
                         pfpage >> ExecEnv::PAGE_SHIFT);
@@ -939,6 +934,7 @@ void ChildManager::Portals::ex_pf(Child *c) {
             cr.limit_to(uf.free_typed());
             cr.count(ds->page_perms(pfpage, cr.count(), perms));
             uf.delegate(cr);
+
             // ensure that we have the memory (if we're a subsystem this might not be true)
             // TODO this is not sufficient, in general
             // TODO perhaps we could find the dataspace, that belongs to this address and use this

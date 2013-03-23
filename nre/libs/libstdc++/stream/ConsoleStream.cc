@@ -14,11 +14,11 @@
  * General Public License version 2 for more details.
  */
 
-#include <stream/ConsoleStream.h>
+#include <stream/VGAStream.h>
 
 using namespace nre;
 
-char ConsoleStream::read() {
+char VGAStream::read() {
     char c;
     while(1) {
         Console::ReceivePacket pk = _sess.receive();
@@ -31,7 +31,7 @@ char ConsoleStream::read() {
     return c;
 }
 
-void ConsoleStream::put(ushort value, ushort *base, uint &pos) {
+void VGAStream::put(ushort value, ushort *base, uint &pos) {
     bool visible = false;
     switch(value & 0xff) {
         // ignore '\0'
@@ -43,13 +43,13 @@ void ConsoleStream::put(ushort value, ushort *base, uint &pos) {
                 pos--;
             break;
         case '\n':
-            pos += Console::COLS - (pos % Console::COLS);
+            pos += COLS - (pos % COLS);
             break;
         case '\r':
-            pos -= pos % Console::COLS;
+            pos -= pos % COLS;
             break;
         case '\t':
-            pos += Console::TAB_WIDTH - (pos % Console::TAB_WIDTH);
+            pos += TAB_WIDTH - (pos % TAB_WIDTH);
             break;
         default:
             visible = true;
@@ -57,10 +57,10 @@ void ConsoleStream::put(ushort value, ushort *base, uint &pos) {
     }
 
     // scroll?
-    if(pos >= Console::COLS * Console::ROWS) {
-        memmove(base, base + Console::COLS, (Console::ROWS - 1) * Console::COLS * 2);
-        memset(base + (Console::ROWS - 1) * Console::COLS, 0, Console::COLS * 2);
-        pos = Console::COLS * (Console::ROWS - 1);
+    if(pos >= COLS * ROWS) {
+        memmove(base, base + COLS, (ROWS - 1) * COLS * 2);
+        memset(base + (ROWS - 1) * COLS, 0, COLS * 2);
+        pos = COLS * (ROWS - 1);
     }
     if(visible)
         base[pos++] = value;

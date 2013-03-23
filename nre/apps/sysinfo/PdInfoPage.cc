@@ -14,7 +14,7 @@
  * General Public License version 2 for more details.
  */
 
-#include <stream/ConsoleStream.h>
+#include <stream/VGAStream.h>
 
 #include "SysInfoPage.h"
 
@@ -22,15 +22,15 @@ using namespace nre;
 
 void PdInfoPage::refresh_console(bool) {
     ScopedLock<UserSm> guard(&_sm);
-    _cons.clear(0);
-    ConsoleStream cs(_cons, 0);
+    VGAStream cs(_cons, 0);
+    cs.clear(0);
 
     // display header
     size_t memtotal, memfree;
     _sysinfo.get_mem(memtotal, memfree);
     cs << fmt("Pd", MAX_NAME_LEN) << ": " << fmt("VirtMem", 24) << fmt("PhysMem", 24)
        << fmt("Threads", 8) << "\n";
-    for(uint i = 0; i < Console::COLS; i++)
+    for(uint i = 0; i < VGAStream::COLS; i++)
         cs << '-';
 
     size_t totalthreads = 0;
@@ -55,7 +55,7 @@ void PdInfoPage::refresh_console(bool) {
     }
 
     // display footer
-    for(uint i = 0; i < Console::COLS; i++)
+    for(uint i = 0; i < VGAStream::COLS; i++)
         cs << '-';
     cs << fmt("Total", MAX_NAME_LEN) << ": "
        << fmt(totalvirt / 1024, 20) << " KiB"

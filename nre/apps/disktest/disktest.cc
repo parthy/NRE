@@ -16,7 +16,7 @@
 
 #include <services/Console.h>
 #include <services/Storage.h>
-#include <stream/ConsoleStream.h>
+#include <stream/VGAStream.h>
 #include <util/Bytes.h>
 #include <Test.h>
 
@@ -130,8 +130,8 @@ static void runtest(DataSpace &buffer, size_t d) {
 
 int main() {
     ConsoleSession cons("console", 1, "DiskTest");
-    ConsoleStream s(cons, 0);
-    cons.clear(0);
+    VGAStream s(cons, 0);
+    s.clear(0);
     s << "Welcome to the disk test program!\n\n";
     s << "WARNING: This test will write on every sector of all harddisks!!!\n";
     s << "ARE YOU SURE YOU WANT TO DO THAT (enter '4711' for yes): ";

@@ -8,7 +8,7 @@ fi
 mkdir -p dist/imgs
 cd dist/imgs
 
-files="bzImage-3.1.0-32 initrd-js.lzma escape.bin escape_cmos.bin escape_fs.bin \
+files="bzImage-3.1.0-32 initrd-js.lzma escape.bin escape_rtc.bin escape_fs.bin \
     escape_ata.bin escape_pci.bin escape_romdisk.bin escape.iso escape-hd.img \
     kernelbuild-e2fs.bz2"
 

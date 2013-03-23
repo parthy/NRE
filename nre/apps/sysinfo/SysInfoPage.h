@@ -18,11 +18,12 @@
 
 #include <services/Console.h>
 #include <services/SysInfo.h>
+#include <stream/VGAStream.h>
 
 class SysInfoPage {
 public:
     static const size_t MAX_NAME_LEN    = 16;
-    static const size_t ROWS            = nre::Console::ROWS - 3;
+    static const size_t ROWS            = nre::VGAStream::ROWS - 3;
 
     explicit SysInfoPage(nre::ConsoleSession &cons, nre::SysInfoSession &sysinfo)
         : _left(0), _top(0), _cons(cons), _sysinfo(sysinfo), _sm() {
@@ -49,12 +50,12 @@ public:
     virtual void refresh_console(bool update) = 0;
 
 protected:
-    void display_footer(nre::ConsoleStream &cs, size_t i) {
-        cs.pos(0, nre::Console::ROWS - 1);
+    void display_footer(nre::VGAStream &cs, size_t i) {
+        cs.pos(0, nre::VGAStream::ROWS - 1);
         cs.color(i == 0 ? 0x17 : 0x71);
-        cs << nre::fmt("Scs", nre::Console::COLS / 2);
+        cs << nre::fmt("Scs", nre::VGAStream::COLS / 2);
         cs.color(i == 1 ? 0x17 : 0x71);
-        cs << nre::fmt("Pds", nre::Console::COLS / 2);
+        cs << nre::fmt("Pds", nre::VGAStream::COLS / 2);
     }
 
     const char *getname(const nre::String &name, size_t &len) {

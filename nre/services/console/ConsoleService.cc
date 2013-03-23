@@ -18,13 +18,15 @@
 
 #include "ConsoleService.h"
 #include "ConsoleSessionData.h"
-#include "HostVGA.h"
+#include "VGAScreen.h"
+#include "VESAScreen.h"
 
 using namespace nre;
 
 ConsoleService::ConsoleService(const char *name, uint modifier)
     : Service(name, CPUSet(CPUSet::ALL), reinterpret_cast<portal_func>(ConsoleSessionData::portal)),
-      _reboot("reboot"), _screen(new HostVGA()), _cons(), _concyc(), _switcher(this), _modifier(modifier) {
+      _vbe(), _reboot("reboot"), _console(), _mode(0), _cons(), _concyc(), _switcher(this),
+      _modifier(modifier) {
     // we want to accept two dataspaces
     for(auto it = CPU::begin(); it != CPU::end(); ++it) {
         LocalThread *t = get_thread(it->log_id());
@@ -38,18 +40,27 @@ ConsoleService::ConsoleService(const char *name, uint modifier)
     _switcher.start();
 }
 
+Screen *ConsoleService::create_screen(size_t mode, size_t size) const {
+    nre::Console::ModeInfo info;
+    if(!_vbe.get_mode_info(mode, info))
+        return nullptr;
+    if(mode == 0)
+        return new VGAScreen;
+    return new VESAScreen(_vbe, info.phys_base, size);
+}
+
 void ConsoleService::create_dummy(uint page, const String &title) {
     OStringStream args;
-    args << 0 << " " << title;
+    args << 0 << " " << 0 << " " << title;
     ConsoleSessionData *sess = static_cast<ConsoleSessionData*>(new_session(args.str()));
-    sess->set_page(page);
-    DataSpace *ds = new DataSpace(ExecEnv::PAGE_SIZE * Screen::PAGES, DataSpaceDesc::ANONYMOUS,
+    DataSpace *ds = new DataSpace(ExecEnv::PAGE_SIZE * VGAScreen::PAGES, DataSpaceDesc::ANONYMOUS,
                                   DataSpaceDesc::RW);
-    memset(reinterpret_cast<void*>(ds->virt()), 0, ExecEnv::PAGE_SIZE * Screen::PAGES);
-    memcpy(reinterpret_cast<void*>(ds->virt() + sess->offset()),
-           reinterpret_cast<void*>(_screen->mem().virt() + sess->offset()),
-           ExecEnv::PAGE_SIZE);
     sess->create(nullptr, ds, 0);
+    sess->set_page(page);
+    memset(reinterpret_cast<void*>(ds->virt()), 0, ExecEnv::PAGE_SIZE * VGAScreen::PAGES);
+    memcpy(reinterpret_cast<void*>(ds->virt() + sess->offset()),
+           reinterpret_cast<void*>(sess->screen()->mem().virt() + sess->offset()),
+           VGAScreen::SIZE);
 }
 
 void ConsoleService::up() {
@@ -103,13 +114,15 @@ void ConsoleService::switch_to(size_t console) {
 }
 
 ServiceSession *ConsoleService::create_session(size_t id, const String &args, portal_func func) {
-    size_t con;
+    size_t con, mode;
     String title;
     IStringStream is(args);
-    is >> con >> title;
+    is >> con >> mode >> title;
     if(con >= Console::SUBCONS)
         VTHROW(Exception, E_ARGS_INVALID, "Subconsole " << con << " does not exist");
-    return new ConsoleSessionData(this, id, func, con, title);
+    if(!is_valid_mode(mode))
+        VTHROW(Exception, E_ARGS_INVALID, "Mode " << mode << " does not exist");
+    return new ConsoleSessionData(this, id, func, con, mode, title);
 }
 
 void ConsoleService::remove(ConsoleSessionData *sess) {

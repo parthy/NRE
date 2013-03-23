@@ -17,6 +17,7 @@
 #include <services/Timer.h>
 #include <services/Console.h>
 #include <util/Clock.h>
+#include <util/Math.h>
 
 #include "ConsoleBackend.h"
 #include "Vancouver.h"
@@ -28,6 +29,11 @@ void ConsoleBackend::thread(void*) {
     TimerSession &timer = c->_vc->timeouts().session();
     ConsoleSession &cons = c->_vc->console();
     nre::Clock clock(1000);
+    nre::Console::ModeInfo modeinfo;
+    size_t mode = 0;
+    memset(&modeinfo, 0, sizeof(modeinfo));
+    if(!cons.get_mode_info(mode, modeinfo))
+        VTHROW(Exception, E_FAILURE, "Mode info failed");
     while(1) {
         if(c->_current != MAX_VIEWS) {
             ConsoleView &view = c->_views[c->_current];
@@ -36,10 +42,19 @@ void ConsoleBackend::thread(void*) {
             regs.cursor_pos = view.regs->cursor_pos;
             regs.cursor_style = view.regs->cursor_style;
             regs.offset = view.regs->offset;
+            if(mode != regs.mode) {
+                if(!cons.get_mode_info(regs.mode, modeinfo))
+                    VTHROW(Exception, E_FAILURE, "Mode info failed");
+                size_t size = modeinfo.resolution[0] * modeinfo.resolution[1] * (modeinfo.bpp / 8);
+                cons.set_mode(regs.mode, size);
+                mode = regs.mode;
+            }
             cons.set_regs(regs);
 
-            memcpy(reinterpret_cast<char*>(cons.screen().virt()) + (view.regs->offset << 1),
-                   view.ptr + (view.regs->offset << 1), 80 * 25 * 2);
+            size_t offset = mode == 0 ? (regs.offset << 1) : 0;
+            size_t size = nre::Math::min<size_t>(c->_max_size,
+                    modeinfo.resolution[0] * modeinfo.resolution[1] * (modeinfo.bpp / 8));
+            memcpy(reinterpret_cast<char*>(cons.screen().virt()) + offset, view.ptr + offset, size);
         }
         timer.wait_until(clock.source_time(25, 1000));
     }

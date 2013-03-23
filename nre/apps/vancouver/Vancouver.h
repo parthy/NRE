@@ -35,9 +35,11 @@ extern nre::UserSm globalsm;
 
 class Vancouver : public StaticReceiver<Vancouver> {
 public:
-    explicit Vancouver(const char **args, size_t count, size_t console, const nre::String &constitle)
+    explicit Vancouver(const char **args, size_t count, size_t console, const nre::String &constitle,
+                       size_t fbsize)
         : _clock(nre::Hip::get().freq_tsc * 1000), _mb(&_clock, nullptr), _timeouts(_mb),
-          _console(this), _conssess("console", console, constitle), _vmmng(), _vcpus(), _stdevs() {
+          _console(this, fbsize), _conssess("console", console, constitle), _vmmng(),
+          _vcpus(), _stdevs() {
         create_devices(args, count);
         create_vcpus();
 

@@ -42,7 +42,8 @@ private:
     };
 
 public:
-    explicit ConsoleBackend(Vancouver *vc) : _current(MAX_VIEWS), _views(), _vc(vc) {
+    explicit ConsoleBackend(Vancouver *vc, size_t max_size)
+            : _current(MAX_VIEWS), _max_size(max_size), _views(), _vc(vc) {
         nre::GlobalThread *gt = nre::GlobalThread::create(
             thread, nre::CPU::current().log_id(), "vmm-console");
         gt->set_tls<ConsoleBackend*>(nre::Thread::TLS_PARAM, this);
@@ -71,6 +72,7 @@ private:
     static void thread(void*);
 
     size_t _current;
+    size_t _max_size;
     ConsoleView _views[MAX_VIEWS];
     Vancouver *_vc;
 };

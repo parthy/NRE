@@ -14,7 +14,7 @@
  * General Public License version 2 for more details.
  */
 
-#include <stream/ConsoleStream.h>
+#include <stream/VGAStream.h>
 
 #include "SysInfoPage.h"
 
@@ -22,8 +22,8 @@ using namespace nre;
 
 void ScInfoPage::refresh_console(bool update) {
     ScopedLock<UserSm> guard(&_sm);
-    _cons.clear(0);
-    ConsoleStream cs(_cons, 0);
+    VGAStream cs(_cons, 0);
+    cs.clear(0);
 
     size_t end = _left + Math::min(VISIBLE_CPUS, CPU::count());
 
@@ -32,7 +32,7 @@ void ScInfoPage::refresh_console(bool update) {
     for(size_t cpu = _left; cpu < end; ++cpu)
         cs << "  CPU" << fmt(cpu, "0", 2);
     cs << fmt("Total", MAX_SUMTIME_LEN + 2) << "\n";
-    for(uint i = 0; i < Console::COLS; i++)
+    for(uint i = 0; i < VGAStream::COLS; i++)
         cs << '-';
 
     // determine the total time elapsed on each CPU. this way we don't assume that exactly 1sec

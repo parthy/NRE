@@ -41,16 +41,20 @@ public:
      *
      * @param base the beginning of the port range
      * @param count the number of ports
+     * @param allocate whether to allocate the ports (if not, it is assumed that you already own them)
      * @throws Exception if failed (e.g. ports already allocated)
      */
-    explicit Ports(port_t base, uint count) : _base(base), _count(count) {
-        alloc();
+    explicit Ports(port_t base, uint count, bool allocate = true)
+            : _owned(allocate), _base(base), _count(count) {
+        if(_owned)
+            alloc();
     }
     /**
      * Releases the ports again
      */
     ~Ports() {
-        release();
+        if(_owned)
+            release();
     }
 
     /**
@@ -115,6 +119,7 @@ private:
     Ports(const Ports&);
     Ports& operator=(const Ports&);
 
+    bool _owned;
     port_t _base;
     uint _count;
 };

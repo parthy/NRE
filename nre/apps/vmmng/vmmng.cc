@@ -18,7 +18,7 @@
 #include <services/Console.h>
 #include <services/Timer.h>
 #include <stream/Serial.h>
-#include <stream/ConsoleStream.h>
+#include <stream/VGAStream.h>
 #include <collection/Cycler.h>
 #include <util/Clock.h>
 #include <Hip.h>
@@ -41,8 +41,8 @@ static Cycler<CPU::iterator> cpucyc(CPU::begin(), CPU::end());
 
 static void refresh_console() {
     ScopedLock<UserSm> guard(&sm);
-    ConsoleStream cs(cons, 0);
-    cons.clear(0);
+    VGAStream cs(cons, 0);
+    cs.clear(0);
     cs << "Welcome to the interactive VM manager!\n\n";
     cs << "VM configurations:\n";
     size_t no = 1;

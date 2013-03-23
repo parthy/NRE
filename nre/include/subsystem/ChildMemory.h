@@ -135,6 +135,27 @@ public:
             _perms.set_all(perms);
         }
 
+        /**
+         * Swaps the backend of this and <ds>.
+         *
+         * @param ds the other dataspace
+         */
+        void swap_backend(DS *ds) {
+            uintptr_t org = _desc.origin();
+            switch_to(ds->_desc.origin());
+            ds->switch_to(org);
+        }
+
+        /**
+         * Sets the given origin as backend
+         *
+         * @param origin the backend origin
+         */
+        void switch_to(uintptr_t origin) {
+            _desc.origin(origin);
+            all_perms(0);
+        }
+
     private:
         DataSpaceDesc _desc;
         capsel_t _cap;

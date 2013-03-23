@@ -22,7 +22,7 @@
 #include <ipc/ClientSession.h>
 #include <ipc/Consumer.h>
 #include <stream/OStringStream.h>
-#include <stream/ConsoleStream.h>
+#include <stream/VGAStream.h>
 #include <stream/Serial.h>
 #include <services/Console.h>
 #include <services/Keyboard.h>
@@ -105,7 +105,7 @@ static void view0(void*) {
     size_t subcon = Thread::current()->get_tls<word_t>(Thread::TLS_PARAM);
     OStringStream(title, sizeof(title)) << "Test-" << subcon;
     ConsoleSession *conssess = new ConsoleSession("console", subcon, title);
-    ConsoleStream view(*conssess, 0);
+    VGAStream view(*conssess, 0);
     int i = 0;
     while(i < 10000) {
         //char c = view.read();
@@ -135,6 +135,7 @@ static void tick_thread(void*) {
 int main() {
     auto &ser = Serial::get();
 
+#if 0
     try {
         VTHROW(Exception, E_EXISTS, "foobar " << 0x1234 << " and more");
     }
@@ -177,6 +178,43 @@ int main() {
 
     timer = new TimerSession("timer");
     //tick_thread(nullptr);
+#endif
+
+#if 0
+    char title[64];
+    Console::ModeInfo info;
+    OStringStream(title, sizeof(title)) << "Test-" << 1;
+    ConsoleSession *conssess = new ConsoleSession("console", 1, title, 0, 1024 * 1024);
+    memset(&info, 0, sizeof(info));
+    for(size_t idx = 0; ; ++idx) {
+        if(!conssess->get_mode_info(idx, info))
+            break;
+        ser << "Mode " << idx << ": " << info.resolution[0] << "x" << info.resolution[1] << "\n";
+    }
+
+    int i = 0;
+    while(1) {
+        switch(i++ % 2) {
+            case 0:
+                conssess->set_mode(7, 1024 * 1024 * 4);
+                memset((void*)conssess->screen().virt() + 640 * 3, 0xFF, 10000);
+                break;
+            case 1:
+                conssess->set_mode(0, 4 * 1024 * 32);
+                VGAStream cs(*conssess, 0);
+                cs << "\nFoobar und mehr\n";
+                break;
+        }
+        while(1) {
+            Console::ReceivePacket pk = conssess->receive();
+            if((pk.flags & Keyboard::RELEASE) && pk.keycode == Keyboard::VK_N)
+                break;
+        }
+    }
+
+    Sm sm(0);
+    sm.down();
+#endif
 
 #if 1
     for(CPU::iterator it = CPU::begin(); it != CPU::end(); ++it) {

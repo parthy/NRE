@@ -14,17 +14,17 @@ bin/apps/vmmng mods=all lastmod
 bin/apps/vancouver
 dist/imgs/escape.bin
 dist/imgs/escape_romdisk.bin
-dist/imgs/escape_cmos.bin
+dist/imgs/escape_rtc.bin
 dist/imgs/escape_fs.bin
 dist/imgs/escape.iso
 bin/apps/guest_munich
 dist/imgs/bzImage-3.1.0-32
 dist/imgs/initrd-js.lzma
 escape.vmconfig <<EOF
-rom://bin/apps/vancouver m:64 ncpu:1 PC_PS2
-rom://dist/imgs/escape.bin videomode=vga
-rom://dist/imgs/escape_romdisk.bin /dev/romdisk rom://dist/imgs/escape.iso
-rom://dist/imgs/escape_cmos.bin /dev/cmos
+rom://bin/apps/vancouver m:64 ncpu:1 vga_fbsize:4096 PC_PS2
+rom://dist/imgs/escape.bin
+rom://dist/imgs/escape_romdisk.bin /dev/romdisk /system/mbmods/3
+rom://dist/imgs/escape_rtc.bin /dev/rtc
 rom://dist/imgs/escape_fs.bin /dev/fs /dev/romdisk iso9660
 rom://dist/imgs/escape.iso
 EOF

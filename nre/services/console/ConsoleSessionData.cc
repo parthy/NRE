@@ -29,7 +29,23 @@ void ConsoleSessionData::create(DataSpace *in_ds, DataSpace *out_ds, Sm *sm) {
     _in_sm = sm;
     if(_in_ds)
         _prod = new Producer<Console::ReceivePacket>(*in_ds, *sm, false);
+    _screen = _srv->create_screen(_mode, _out_ds->size());
     _srv->session_ready(this);
+}
+
+void ConsoleSessionData::change_mode(nre::DataSpace *out_ds, size_t mode) {
+    ScopedLock<UserSm> guard(&_sm);
+    if(!_srv->is_valid_mode(mode))
+        VTHROW(Exception, E_ARGS_INVALID, "Mode " << mode << " does not exist");
+    _mode = mode;
+    delete _out_ds;
+    delete _screen;
+    _out_ds = out_ds;
+    _screen = _srv->create_screen(_mode, _out_ds->size());
+    if(_has_screen) {
+        activate();
+        swap();
+    }
 }
 
 void ConsoleSessionData::portal(ConsoleSessionData *sess) {
@@ -50,10 +66,35 @@ void ConsoleSessionData::portal(ConsoleSessionData *sess) {
             }
             break;
 
+            case Console::SET_MODE: {
+                capsel_t outsel = uf.get_delegated(0).offset();
+                size_t mode;
+                uf >> mode;
+                uf.finish_input();
+
+                sess->change_mode(new DataSpace(outsel), mode);
+                uf.accept_delegates();
+                uf << E_SUCCESS;
+            }
+            break;
+
             case Console::GET_REGS: {
                 uf.finish_input();
 
                 uf << E_SUCCESS << sess->regs();
+            }
+            break;
+
+            case Console::GET_MODEINFO: {
+                size_t idx;
+                uf >> idx;
+                uf.finish_input();
+
+                Console::ModeInfo info;
+                bool res = sess->_srv->get_mode_info(idx, info);
+                uf << E_SUCCESS << res;
+                if(res)
+                    uf << info;
             }
             break;
 

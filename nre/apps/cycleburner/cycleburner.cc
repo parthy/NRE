@@ -20,6 +20,7 @@
 
 #include <arch/Types.h>
 #include <stream/Serial.h>
+#include <stream/VGAStream.h>
 #include <services/Console.h>
 #include <services/Timer.h>
 #include <util/Clock.h>
@@ -308,7 +309,7 @@ int main() {
     PlasmaAnimator<25, 80> *pa = new PlasmaAnimator<25, 80>();
     QuoteAnimator<25, 80> *qa = new QuoteAnimator<25, 80>(pa);
 
-    uint16_t *screen = reinterpret_cast<uint16_t*>(console.screen().virt() + Console::TEXT_OFF);
+    uint16_t *screen = reinterpret_cast<uint16_t*>(console.screen().virt() + VGAStream::TEXT_OFF);
     timevalue_t starttime = clock.dest_time();
     while(1) {
         timevalue_t now = clock.dest_time();

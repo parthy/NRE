@@ -19,6 +19,7 @@
 #include <kobj/Ports.h>
 #include <services/Reboot.h>
 #include <stream/IStringStream.h>
+#include <stream/VGAStream.h>
 #include <util/TimeoutList.h>
 #include <util/Util.h>
 
@@ -303,15 +304,27 @@ bool Vancouver::receive(MessageConsole &msg) {
     switch(msg.type) {
         case MessageConsole::TYPE_ALLOC_CLIENT:
             ::Logging::panic("console: ALLOC_CLIENT not supported.\n");
-        case MessageConsole::TYPE_ALLOC_VIEW:
+        case MessageConsole::TYPE_ALLOC_VIEW: {
             assert(msg.ptr and msg.regs);
+            Console::Register regs = _conssess.get_regs();
+            msg.regs->mode = regs.mode;
+            msg.regs->cursor_pos = regs.cursor_pos;
+            msg.regs->cursor_style = regs.cursor_style;
+            msg.regs->offset = regs.offset;
             msg.view = _console.add_view(msg.name, msg.ptr, msg.size, msg.regs);
             _console.set_view(msg.view);
             return true;
+        }
         case MessageConsole::TYPE_SWITCH_VIEW:
             _console.set_view(msg.view);
             return true;
         case MessageConsole::TYPE_GET_MODEINFO:
+            nre::Console::ModeInfo info;
+            if(_conssess.get_mode_info(msg.index, info)) {
+                memcpy(msg.info, &info, sizeof(*msg.info));
+                return true;
+            }
+            break;
         case MessageConsole::TYPE_GET_FONT:
         case MessageConsole::TYPE_KEY:
         case MessageConsole::TYPE_RESET:
@@ -453,14 +466,18 @@ void Vancouver::create_vcpus() {
 }
 
 int main(int argc, char **argv) {
+    size_t fbsize = ExecEnv::PAGE_SIZE * nre::VGAStream::PAGES;
     for(int i = 1; i < argc; ++i) {
+        if(strncmp(argv[i], "vga_fbsize:", 11) == 0)
+            fbsize = IStringStream::read_from<size_t>(argv[i] + 11) * 1024;
         if(strncmp(argv[i], "console:", 8) == 0)
             console = IStringStream::read_from<size_t>(argv[i] + 8);
         else if(strncmp(argv[i], "constitle:", 10) == 0)
             constitle = String(argv[i] + 10);
     }
 
-    Vancouver *v = new Vancouver(const_cast<const char**>(argv + 1), argc - 1, console, constitle);
+    Vancouver *v = new Vancouver(const_cast<const char**>(argv + 1),
+            argc - 1, console, constitle, fbsize);
     v->reset();
 
     Sm sm(0);

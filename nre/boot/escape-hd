@@ -10,10 +10,10 @@ bin/apps/pcicfg provides=pcicfg
 bin/apps/timer provides=timer
 bin/apps/console provides=console
 bin/apps/sysinfo
-bin/apps/storage provides=storage
-bin/apps/vancouver mods=following lastmod m:64 ncpu:1 PC_PS2 ide:0x1f0,0x3f6,14,0,0
-dist/imgs/escape.bin videomode=vga
+bin/apps/storage provides=storage noidedma
+bin/apps/vancouver mods=following lastmod m:64 ncpu:1 vga_fbsize:4096 PC_PS2 ide:0x1f0,0x3f6,14,0x38,0
+dist/imgs/escape.bin
 dist/imgs/escape_pci.bin /dev/pci
 dist/imgs/escape_ata.bin /system/devices/ata
-dist/imgs/escape_cmos.bin /dev/cmos
+dist/imgs/escape_rtc.bin /dev/rtc
 dist/imgs/escape_fs.bin /dev/fs /dev/hda1 ext2

@@ -22,6 +22,7 @@
 #include <collection/Cycler.h>
 #include <collection/DList.h>
 
+#include "VBE.h"
 #include "Screen.h"
 #include "ViewSwitcher.h"
 
@@ -55,11 +56,34 @@ public:
     void left_unlocked();
     void right();
 
+    bool get_mode_info(size_t idx, nre::Console::ModeInfo &info) {
+        return _vbe.get_mode_info(idx, info);
+    }
+    bool is_valid_mode(size_t idx) const {
+        return idx < (_vbe.end() - _vbe.begin());
+    }
+    size_t idx_from_mode(uint16_t mode) {
+        size_t i = 0;
+        for(auto it = _vbe.begin(); it != _vbe.end(); ++it, ++i) {
+            if(it->_vesa_mode == mode)
+                return i;
+        }
+        VTHROW(Exception, E_NOT_FOUND, "Mode " << mode << " not found");
+        return 0;
+    }
+    size_t mode() const {
+        return _mode;
+    }
+    void mode(size_t mode) {
+        if(_mode != mode) {
+            _vbe.set_mode(mode);
+            _mode = mode;
+        }
+    }
+    Screen *create_screen(size_t mode, size_t size) const;
+
     ViewSwitcher &switcher() {
         return _switcher;
-    }
-    Screen *screen() {
-        return _screen;
     }
     void session_ready(ConsoleSessionData *sess);
     bool handle_keyevent(const nre::Keyboard::Packet &pk);
@@ -69,9 +93,10 @@ private:
     void create_dummy(uint page, const nre::String &title);
     void switch_to(size_t console);
 
+    VBE _vbe;
     nre::RebootSession _reboot;
-    Screen *_screen;
     size_t _console;
+    size_t _mode;
     nre::DList<SessionReference> *_cons[nre::Console::SUBCONS];
     nre::Cycler<iterator> *_concyc[nre::Console::SUBCONS];
     nre::UserSm _sm;

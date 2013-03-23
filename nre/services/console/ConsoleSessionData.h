@@ -17,6 +17,7 @@
 #pragma once
 
 #include <kobj/UserSm.h>
+#include <stream/VGAStream.h>
 #include <services/Console.h>
 #include <collection/DList.h>
 
@@ -25,12 +26,12 @@
 class ConsoleSessionData : public nre::ServiceSession, public nre::DListItem {
 public:
     ConsoleSessionData(ConsoleService *srv, size_t id, portal_func func,
-                       size_t con, const nre::String &title)
-        : ServiceSession(srv, id, func), DListItem(), _has_screen(false), _console(con),
-          _title(title), _sm(), _in_ds(), _out_ds(), _in_sm(), _prod(), _regs(), _srv(srv) {
-        _regs.offset = nre::Console::TEXT_OFF >> 1;
+                       size_t con, size_t mode, const nre::String &title)
+        : ServiceSession(srv, id, func), DListItem(), _has_screen(false), _console(con), _mode(mode),
+          _screen(), _title(title), _sm(), _in_ds(), _out_ds(), _in_sm(), _prod(), _regs(), _srv(srv) {
+        _regs.offset = nre::VGAStream::TEXT_OFF >> 1;
         _regs.mode = 0;
-        _regs.cursor_pos = (nre::Console::ROWS - 1) * nre::Console::COLS + (nre::Console::TEXT_OFF >> 1);
+        _regs.cursor_pos = (nre::VGAStream::ROWS - 1) * nre::VGAStream::COLS + (nre::VGAStream::TEXT_OFF >> 1);
         _regs.cursor_style = 0x0d0e;
     }
     virtual ~ConsoleSessionData() {
@@ -38,6 +39,7 @@ public:
         delete _in_ds;
         delete _in_sm;
         delete _out_ds;
+        delete _screen;
     }
 
     virtual void invalidate() {
@@ -50,6 +52,12 @@ public:
         _srv->remove(this);
     }
 
+    nre::UserSm &sm() {
+        return _sm;
+    }
+    size_t mode() const {
+        return _mode;
+    }
     size_t console() const {
         return _console;
     }
@@ -67,6 +75,7 @@ public:
     }
 
     void create(nre::DataSpace *in_ds, nre::DataSpace *out_ds, nre::Sm *sm);
+    void change_mode(nre::DataSpace *out_ds, size_t mode);
 
     void to_front() {
         if(!_has_screen) {
@@ -82,30 +91,40 @@ public:
         }
     }
     void activate() {
-        set_regs(_regs);
+        set_mode();
+        set_regs(_regs, true);
     }
 
+    Screen *screen() {
+        return _screen;
+    }
+    void set_mode() {
+         _srv->mode(mode());
+    }
     void set_page(uint page) {
-        _regs.offset = (nre::Console::TEXT_OFF >> 1) + (page << 11);
+        _regs.offset = (nre::VGAStream::TEXT_OFF >> 1) + (page << 11);
     }
     const nre::Console::Register &regs() const {
         return _regs;
     }
-    void set_regs(const nre::Console::Register &regs) {
+    void set_regs(const nre::Console::Register &regs, bool force = false) {
         _regs = regs;
+        _regs.mode = _mode;
         if(_srv->is_active(this))
-            _srv->screen()->set_regs(_regs);
+            _screen->set_regs(_regs, force);
     }
 
     PORTAL static void portal(ConsoleSessionData *sess);
 
 private:
     void swap() {
-        _out_ds->switch_to(_srv->screen()->mem());
+        _out_ds->switch_to(_screen->mem());
     }
 
     bool _has_screen;
     size_t _console;
+    size_t _mode;
+    Screen *_screen;
     nre::String _title;
     nre::UserSm _sm;
     nre::DataSpace *_in_ds;

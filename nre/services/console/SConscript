@@ -2,4 +2,17 @@
 
 Import('env')
 
-env.NREProgram(env, 'console', Glob('*.cc'))
+myenv = env.Clone()
+
+# use custom linker script (for params and profile-stuff)
+myenv['LINKFLAGS'] += ' -Wl,-T,libs/libseoul/nre/linker_' + myenv['ARCH'] + '.ld'
+
+# we need to use whole-archive here, because the devices are not used explicitly so that the linker
+# thinks he doesn't need to link them
+myenv['LINKFLAGS'] += ' -Wl,--whole-archive -lseoul -Wl,--no-whole-archive'
+
+prog = myenv.NREProgram(
+    myenv, 'console', Glob('*.cc'),
+    cpppath = ['#libs/libseoul/include', '#libs/libseoul/nre/include']
+)
+myenv.Depends(prog, myenv['LIBPATH'] + '/libseoul.a')

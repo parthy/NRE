@@ -9,6 +9,6 @@ bin/apps/reboot provides=reboot
 bin/apps/pcicfg provides=pcicfg
 bin/apps/timer provides=timer
 bin/apps/console provides=console
-bin/apps/storage provides=storage
+bin/apps/storage provides=storage noidedma
 bin/apps/sysinfo
 bin/apps/disktest

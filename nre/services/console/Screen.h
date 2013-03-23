@@ -22,29 +22,13 @@
 
 class Screen {
 public:
-    static const uint COLS          = nre::Console::COLS;
-    static const uint ROWS          = nre::Console::ROWS;
-    static const size_t SIZE        = COLS * ROWS * 2;
-    static const size_t PAGES       = nre::Console::PAGES;
-    static const size_t PAGE_SIZE   = nre::Console::PAGE_SIZE;
-    static const size_t TEXT_OFF    = nre::Console::TEXT_OFF;
-    static const size_t TEXT_PAGES  = nre::Console::TEXT_PAGES;
-
     explicit Screen() {
     }
     virtual ~Screen() {
     }
 
-    uint current() const {
-        return _current;
-    }
-    void current(uint current) {
-        _current = current;
-    }
-
     virtual nre::DataSpace &mem() = 0;
-    virtual void set_regs(const nre::Console::Register &regs) = 0;
-
-private:
-    uint _current;
+    virtual void set_regs(const nre::Console::Register &regs, bool force) = 0;
+    virtual void refresh(const char *src, size_t size) = 0;
+    virtual void write_tag(const char *tag, size_t len, uint8_t color) = 0;
 };
