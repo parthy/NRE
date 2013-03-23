@@ -29,7 +29,7 @@ ServiceSession::ServiceSession(Service *s, size_t id, portal_func func)
             LocalThread *ec = s->get_thread(i);
             assert(ec != nullptr);
             _pts[i] = new Pt(ec, _caps + i, func);
-            _pts[i]->set_id(this);
+            _pts[i]->set_id(reinterpret_cast<word_t>(this));
         }
     }
 }

@@ -247,7 +247,7 @@ Child::id_type ChildManager::load(uintptr_t addr, size_t size, const ChildConfig
                                         reinterpret_cast<Pt::portal_func>(Portals::dataspace),
                                         Mtd(0));
             while(i-- > 0)
-                c->_pts[idx + i]->set_id(c);
+                c->_pts[idx + i]->set_id(reinterpret_cast<word_t>(c));
         }
         // now create Pd and pass portals
         c->_pd = new Pd(Crd(pts, Math::next_pow2_shift(per_child_caps()), Crd::OBJ_ALL));

@@ -65,8 +65,9 @@ capsel_t VCPUBackend::get_portals(bool use_svm) {
         // if VMX is used, just create the VMX-portals. the same for SVM
         if(use_svm == (_portals[i].offset < PT_SVM))
             continue;
-        new Pt(_ec, caps + (_portals[i].offset & 0xFF),
+        Pt *pt = new Pt(_ec, caps + (_portals[i].offset & 0xFF),
                reinterpret_cast<Pt::portal_func>(_portals[i].func), Mtd(_portals[i].mtd));
+        pt->set_id(_portals[i].offset & 0xFF);
     }
     return caps;
 }

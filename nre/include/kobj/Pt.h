@@ -90,12 +90,10 @@ public:
      * Sets the id of this portal which you'll receive as first parameter on every subsequent
      * portal-call.
      *
-     * @param id the id (has to fit in a word_t)
+     * @param id the id
      */
-    template<typename T>
-    void set_id(T id) {
-        static_assert(sizeof(T) <= sizeof(word_t), "Wrong portal argument type");
-        Syscalls::pt_ctrl(sel(), reinterpret_cast<word_t>(id));
+    void set_id(word_t id) {
+        Syscalls::pt_ctrl(sel(), id);
     }
 
 private:
