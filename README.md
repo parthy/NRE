@@ -25,7 +25,7 @@ Please take the following steps:
     b) Otherwise, execute `build.sh <arch>`, where `<arch>` is either `x86_32`
     or `x86_64`. This builds the cross compiler. Thus, it will take a few
     minutes :)
-3.  To checkout NOVA, please do a `git submodule init && git submodule update`
+3.  To checkout the submodules, please do a `git submodule init && git submodule update`
     in the root directory of the repository.
 4.  Before you continue, choose the target and build-type that you want to use:  
     `export NRE_TARGET=(x86_32|x86_64) NRE_BUILD=(debug|release)`
