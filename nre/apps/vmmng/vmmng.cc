@@ -169,8 +169,6 @@ int main() {
 
     GlobalThread::create(input_thread, CPU::current().log_id(), "vmmng-input")->start();
     GlobalThread::create(refresh_thread, CPU::current().log_id(), "vmmng-refresh")->start();
-
-    VMMngService *srv = VMMngService::create("vmmanager");
-    srv->start();
+    VMMngService::create("vmmanager")->start();
     return 0;
 }
