@@ -66,8 +66,10 @@ public:
 
 private:
     void convert_dma(nre::Storage::dma_type &dst, const DmaDescriptor *dma, size_t count) {
-        while(count-- > 0)
+        while(count-- > 0) {
             dst.push(nre::DMADesc(dma->byteoffset, dma->bytecount));
+            dma++;
+        }
     }
 
     static void thread(void*) {
