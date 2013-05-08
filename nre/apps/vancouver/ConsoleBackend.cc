@@ -26,7 +26,7 @@ using namespace nre;
 
 void ConsoleBackend::thread(void*) {
     ConsoleBackend *c = Thread::current()->get_tls<ConsoleBackend*>(Thread::TLS_PARAM);
-    TimerSession &timer = c->_vc->timeouts().session();
+    TimerSession timer("timer");
     ConsoleSession &cons = c->_vc->console();
     nre::Clock clock(1000);
     nre::Console::ModeInfo modeinfo;
