@@ -128,6 +128,9 @@ ServiceSession *ConsoleService::create_session(size_t id, const String &args, po
 void ConsoleService::remove(ConsoleSessionData *sess) {
     ScopedLock<UserSm> guard(&_sm);
     size_t con = sess->console();
+    if(!_cons[con])
+        return;
+
     for(auto it = _cons[con]->begin(); it != _cons[con]->end(); ++it) {
         if(&*it->sess == sess) {
             _cons[con]->remove(&*it);
