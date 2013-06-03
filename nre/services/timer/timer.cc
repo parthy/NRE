@@ -31,23 +31,33 @@ class TimerSessionData : public ServiceSession {
 public:
     // take care that we do the allocation of ClientData only from the corresponding CPU
     explicit TimerSessionData(Service *s, size_t id, portal_func func)
-        : ServiceSession(s, id, func), _data(new HostTimer::ClientData*[CPU::count()]()) {
+        : ServiceSession(s, id, func), _sms(new Sm*[CPU::count()]),
+          _data(new HostTimer::ClientData*[CPU::count()]()) {
+        for(auto it = CPU::begin(); it != CPU::end(); ++it)
+            _sms[it->log_id()] = new Sm(0);
     }
     // deletion is ok here because it doesn't touch shared data.
     virtual ~TimerSessionData() {
-        for(auto it = CPU::begin(); it != CPU::end(); ++it)
+        for(auto it = CPU::begin(); it != CPU::end(); ++it) {
             delete _data[it->log_id()];
+            delete _sms[it->log_id()];
+        }
+        delete[] _sms;
         delete[] _data;
     }
 
+    Sm &sm(cpu_t cpu) {
+        return *_sms[cpu];
+    }
     HostTimer::ClientData *data(cpu_t cpu) {
         assert(CPU::current().log_id() == cpu);
         if(_data[cpu] == nullptr)
-            _data[cpu] = new HostTimer::ClientData(id(), cpu, timer->get_percpu(cpu));
+            _data[cpu] = new HostTimer::ClientData(id(), cpu, timer->get_percpu(cpu), _sms[cpu]);
         return _data[cpu];
     }
 
 private:
+    Sm **_sms;
     HostTimer::ClientData **_data;
 };
 
@@ -76,7 +86,7 @@ void TimerService::portal(TimerSessionData *sess) {
                 uf.finish_input();
 
                 for(auto it = CPU::begin(); it != CPU::end(); ++it)
-                    uf.delegate(sess->data(it->log_id())->sm->sel(), it->log_id());
+                    uf.delegate(sess->sm(it->log_id()).sel(), it->log_id());
                 uf << E_SUCCESS;
                 break;
 

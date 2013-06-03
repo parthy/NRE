@@ -28,9 +28,9 @@
 
 using namespace nre;
 
-HostTimer::ClientData::ClientData(size_t sid, cpu_t cpu, HostTimer::PerCpu *per_cpu)
+HostTimer::ClientData::ClientData(size_t sid, cpu_t cpu, HostTimer::PerCpu *per_cpu, nre::Sm *sm)
     : abstimeout(0), count(0), nr(per_cpu->abstimeouts.alloc(this)), cpu(cpu),
-      sm(new nre::Sm(0)), sid(sid), per_cpu(per_cpu) {
+      sm(sm), sid(sid), per_cpu(per_cpu) {
     assert(CPU::current().log_id() == cpu);
     // ensure that there is no pending timeout. this can happen if this slot was allocated by a
     // different client previously.
@@ -40,7 +40,6 @@ HostTimer::ClientData::ClientData(size_t sid, cpu_t cpu, HostTimer::PerCpu *per_
 HostTimer::ClientData::~ClientData() {
     // we can't cancel the maybe pending timeout here because we might be called from a different CPU.
     per_cpu->abstimeouts.dealloc(nr);
-    delete sm;
 }
 
 HostTimer::HostTimer(bool force_pit, bool force_hpet_legacy, bool slow_rtc)

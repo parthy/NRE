@@ -53,7 +53,7 @@ public:
 
         explicit ClientData() : abstimeout(), count(), nr(), cpu(), sm(), sid(), per_cpu() {
         }
-        explicit ClientData(size_t sid, cpu_t cpu, HostTimer::PerCpu *per_cpu);
+        explicit ClientData(size_t sid, cpu_t cpu, HostTimer::PerCpu *per_cpu, nre::Sm *sm);
         ~ClientData();
     };
 
