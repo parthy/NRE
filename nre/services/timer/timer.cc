@@ -29,21 +29,26 @@ static TimerService *srv;
 
 class TimerSessionData : public ServiceSession {
 public:
+    // take care that we do the allocation of ClientData only from the corresponding CPU
     explicit TimerSessionData(Service *s, size_t id, portal_func func)
-        : ServiceSession(s, id, func), _data(new HostTimer::ClientData[CPU::count()]) {
-        for(auto it = CPU::begin(); it != CPU::end(); ++it)
-            timer->setup_clientdata(id, _data + it->log_id(), it->log_id());
+        : ServiceSession(s, id, func), _data(new HostTimer::ClientData*[CPU::count()]()) {
     }
+    // deletion is ok here because it doesn't touch shared data.
     virtual ~TimerSessionData() {
+        for(auto it = CPU::begin(); it != CPU::end(); ++it)
+            delete _data[it->log_id()];
         delete[] _data;
     }
 
     HostTimer::ClientData *data(cpu_t cpu) {
-        return _data + cpu;
+        assert(CPU::current().log_id() == cpu);
+        if(_data[cpu] == nullptr)
+            _data[cpu] = new HostTimer::ClientData(id(), cpu, timer->get_percpu(cpu));
+        return _data[cpu];
     }
 
 private:
-    HostTimer::ClientData *_data;
+    HostTimer::ClientData **_data;
 };
 
 class TimerService : public Service {

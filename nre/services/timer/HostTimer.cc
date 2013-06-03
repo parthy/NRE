@@ -28,11 +28,19 @@
 
 using namespace nre;
 
-void HostTimer::ClientData::init(size_t _sid, cpu_t cpuno, HostTimer::PerCpu *per_cpu) {
-    sm = new nre::Sm(0);
-    nr = per_cpu->abstimeouts.alloc(this);
-    cpu = cpuno;
-    sid = _sid;
+HostTimer::ClientData::ClientData(size_t sid, cpu_t cpu, HostTimer::PerCpu *per_cpu)
+    : abstimeout(0), count(0), nr(per_cpu->abstimeouts.alloc(this)), cpu(cpu),
+      sm(new nre::Sm(0)), sid(sid), per_cpu(per_cpu) {
+    assert(CPU::current().log_id() == cpu);
+    // ensure that there is no pending timeout. this can happen if this slot was allocated by a
+    // different client previously.
+    per_cpu->abstimeouts.cancel(nr);
+}
+
+HostTimer::ClientData::~ClientData() {
+    // we can't cancel the maybe pending timeout here because we might be called from a different CPU.
+    per_cpu->abstimeouts.dealloc(nr);
+    delete sm;
 }
 
 HostTimer::HostTimer(bool force_pit, bool force_hpet_legacy, bool slow_rtc)
@@ -192,10 +200,12 @@ timevalue_t HostTimer::handle_expired_timers(PerCpu *per_cpu, timevalue_t now) {
     ClientData *data;
     uint nr;
     while((nr = per_cpu->abstimeouts.trigger(now, &data))) {
-        assert(data);
         per_cpu->abstimeouts.cancel(nr);
-        Atomic::add(&data->count, 1U);
-        data->sm->up();
+        // can happen if the client is already gone
+        if(data) {
+            Atomic::add(&data->count, 1U);
+            data->sm->up();
+        }
     }
     return per_cpu->abstimeouts.timeout();
 }
