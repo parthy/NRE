@@ -64,7 +64,13 @@ public:
                 begin = name + 1;
             name++;
         }
-        Syscalls::pd_ctrl(sel(), begin);
+        try {
+            Syscalls::pd_ctrl(sel(), begin);
+        }
+        catch(...) {
+            // just ignore a failure here to make it easier to use a NOVA version without that
+            // syscall.
+        }
     }
 
 private:
