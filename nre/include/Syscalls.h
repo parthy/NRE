@@ -167,9 +167,14 @@ public:
      * @param name the name
      * @throws SyscallException if the system-call failed (result != E_SUCCESS)
      */
+#if HAVE_KERNEL_EXTENSIONS
     static void pd_ctrl(capsel_t pd, const char *name) {
         SyscallABI::syscall(pd << 8 | PD_CTRL, reinterpret_cast<word_t>(name));
     }
+#else
+    static void pd_ctrl(capsel_t, const char *) {
+    }
+#endif
 
     /**
      * Controls the given Ec.

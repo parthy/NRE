@@ -30,3 +30,8 @@
 #define STRING(x)               # x
 #define EXPAND(x)               STRING(x)
 #define ARRAY_SIZE(X)           (sizeof((X)) / sizeof((X)[0]))
+
+/**
+ * Whether the changes that have been done in the NRE-branch of NOVA exist
+ */
+#define HAVE_KERNEL_EXTENSIONS  1

@@ -22,10 +22,6 @@
  * Whether the UtcbStack variant should be used (requires a NOVA change)
  */
 #define USE_UTCB_STACKING       0
-/**
- * Whether the NOVA change exists (changes the UTCB layout)
- */
-#define USE_UTCB_KERNEL_EXT     1
 
 namespace nre {
 
@@ -47,7 +43,7 @@ class UtcbHead {
     friend OStream & operator<<(OStream &os, const UtcbFrameRef &frm);
 
 protected:
-#if USE_UTCB_KERNEL_EXT
+#if HAVE_KERNEL_EXTENSIONS
     uint16_t top;           // offset of the current frame from the top in words
     uint16_t bottom;        // offset of the current frame from the bottom in words
 #endif
