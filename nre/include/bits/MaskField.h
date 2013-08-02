@@ -56,7 +56,7 @@ public:
      */
     explicit MaskField(size_t total)
         : _bits(total), _count(Math::blockcount<size_t>(total, (sizeof(word_t) * 8))),
-          _words(new word_t[_count]) {
+          _words(new word_t[_count]()) {
         static_assert((BITS & (BITS - 1)) == 0, "BITS has to be a power of 2");
     }
     ~MaskField() {
