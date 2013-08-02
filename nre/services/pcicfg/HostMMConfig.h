@@ -53,32 +53,32 @@ class HostMMConfig : public Config {
             : _start(start), _size(size),
               _ds(size * nre::ExecEnv::PAGE_SIZE, nre::DataSpaceDesc::LOCKED, nre::DataSpaceDesc::R,
                   base),
-              _mmconfig(reinterpret_cast<uint*>(_ds.virt())) {
+              _mmconfig(reinterpret_cast<value_type*>(_ds.virt())) {
         }
 
-        uintptr_t addr() const {
-            return _ds.phys();
+        uintptr_t addr(nre::BDF bdf, size_t offset) const {
+            return _ds.phys() + field(bdf, offset) * sizeof(value_type);
         }
         bool contains(nre::BDF bdf, size_t offset) const {
             return offset < 0x1000 && nre::Math::in_range(bdf.value(), _start, _size);
         }
         value_type read(nre::BDF bdf, size_t offset) const {
-            return *field(bdf, offset);
+            return _mmconfig[field(bdf, offset)];
         }
         void write(nre::BDF bdf, size_t offset, value_type value) {
-            *field(bdf, offset) = value;
+            _mmconfig[field(bdf, offset)] = value;
         }
 
     private:
-        uint *field(nre::BDF bdf, size_t offset) const {
-            return _mmconfig + (bdf.value() << 10) + ((offset >> 2) & 0x3FF);
+        size_t field(nre::BDF bdf, size_t offset) const {
+            return (bdf.value() << 10) + ((offset >> 2) & 0x3FF);
         }
 
     private:
         uintptr_t _start;
         size_t _size;
         nre::DataSpace _ds;
-        uint *_mmconfig;
+        value_type *_mmconfig;
     };
 
 public:
@@ -96,7 +96,7 @@ public:
     }
     virtual uintptr_t addr(nre::BDF bdf, size_t offset) {
         MMConfigRange *range = find(bdf, offset);
-        return range->addr();
+        return range->addr(bdf, offset);
     }
     virtual value_type read(nre::BDF bdf, size_t offset) {
         MMConfigRange *range = find(bdf, offset);
