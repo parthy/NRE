@@ -60,7 +60,7 @@ public:
         return _vbe.get_mode_info(idx, info);
     }
     bool is_valid_mode(size_t idx) const {
-        return idx < (_vbe.end() - _vbe.begin());
+        return idx < static_cast<size_t>(_vbe.end() - _vbe.begin());
     }
     size_t idx_from_mode(uint16_t mode) {
         size_t i = 0;

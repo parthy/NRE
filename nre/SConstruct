@@ -10,7 +10,7 @@ elif target == 'x86_64':
 else:
     print "Please define NRE_TARGET to x86_32 or x86_64 first!"
     Exit(1)
-crossver = '4.6.3'
+crossver = '4.8.1'
 crossdir = os.path.abspath('/opt/nre-cross-' + target)
 
 hostenv = Environment(

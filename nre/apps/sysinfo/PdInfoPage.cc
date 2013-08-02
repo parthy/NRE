@@ -37,21 +37,21 @@ void PdInfoPage::refresh_console(bool) {
     size_t totalphys = 0;
     size_t totalvirt = 0;
     for(size_t idx = 0, c = 0; c < ROWS; ++c, ++idx) {
-        SysInfo::Child c;
-        if(!_sysinfo.get_child(idx, c))
+        SysInfo::Child child;
+        if(!_sysinfo.get_child(idx, child))
             break;
 
         if(idx >= _top) {
             size_t namelen = 0;
-            const char *name = getname(c.cmdline(), namelen);
+            const char *name = getname(child.cmdline(), namelen);
             cs << fmt(name, MAX_NAME_LEN, namelen) << ": "
-               << fmt(c.virt_mem() / 1024, 20) << " KiB"
-               << fmt(c.phys_mem() / 1024, 20) << " KiB"
-               << fmt(c.threads(), 8) << "\n";
+               << fmt(child.virt_mem() / 1024, 20) << " KiB"
+               << fmt(child.phys_mem() / 1024, 20) << " KiB"
+               << fmt(child.threads(), 8) << "\n";
         }
-        totalvirt += c.virt_mem();
-        totalphys += c.phys_mem();
-        totalthreads += c.threads();
+        totalvirt += child.virt_mem();
+        totalphys += child.phys_mem();
+        totalthreads += child.threads();
     }
 
     // display footer

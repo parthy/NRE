@@ -42,7 +42,7 @@ public:
 protected:
     static const size_t WORDS       = SIZE / sizeof(word_t);
 
-    word_t msg[(SIZE - sizeof(UtcbHead)) / sizeof(word_t)];
+    char msg[(SIZE - sizeof(UtcbHead))];
 
     // no construction and copying
     UtcbBase();

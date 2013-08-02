@@ -58,16 +58,26 @@ class Utcb : public UtcbBase {
     }
 
     /**
+     * @return reference to the item in slot <slot>
+     */
+    word_t &item(size_t slot) {
+        return reinterpret_cast<word_t*>(msg)[slot];
+    }
+    const word_t &item(size_t slot) const {
+        return reinterpret_cast<const word_t*>(msg)[slot];
+    }
+
+    /**
      * @return current layer
      */
     uint layer() const {
-        return (msg[POS_SLOT] >> 12) & 0xF;
+        return (item(POS_SLOT) >> 12) & 0xF;
     }
     /**
      * @return number of untyped items including the saved ones
      */
     uint untyped_count() const {
-        return msg[POS_SLOT] & 0xFFF;
+        return item(POS_SLOT) & 0xFFF;
     }
     /**
      * @return the offset in the message-registers where new untyped items should be saved
@@ -80,13 +90,13 @@ class Utcb : public UtcbBase {
      */
     void add_untyped(int n) {
         short ut = untyped_count();
-        msg[POS_SLOT] = (msg[POS_SLOT] & 0xFFFFF000) | (ut + n);
+        item(POS_SLOT) = (item(POS_SLOT) & 0xFFFFF000) | (ut + n);
     }
     /**
      * @return number of typed items including the saved ones
      */
     uint typed_count() const {
-        return msg[POS_SLOT] >> 16;
+        return item(POS_SLOT) >> 16;
     }
     /**
      * @return the offset in the message-registers where new typed items should be saved
@@ -99,14 +109,14 @@ class Utcb : public UtcbBase {
      */
     void add_typed(int n) {
         short t = typed_count();
-        msg[POS_SLOT] = (msg[POS_SLOT] & 0x0000FFFF) | (t + n) << 16;
+        item(POS_SLOT) = (item(POS_SLOT) & 0x0000FFFF) | (t + n) << 16;
     }
     /**
      * Sets the layer to <layer>
      */
     void set_layer(int layer) {
         assert(layer >= 0 && layer <= 0xF);
-        msg[POS_SLOT] = (msg[POS_SLOT] & 0xFFFF0FFF) | (layer << 12);
+        item(POS_SLOT) = (item(POS_SLOT) & 0xFFFF0FFF) | (layer << 12);
     }
 
     /**
@@ -151,8 +161,8 @@ class Utcb : public UtcbBase {
         if(l > 1) {
             const int utcount = (sizeof(UtcbHead) / sizeof(word_t)) + untyped;
             const int tcount = typed * 2;
-            word_t *utbackup = msg + untyped_start();
-            word_t *tbackup = msg + typed_start();
+            word_t *utbackup = &item(untyped_start());
+            word_t *tbackup = &item(typed_start());
             memcpy(utbackup - utcount, this, utcount * sizeof(word_t));
             utbackup[-(utcount + 1)] = utcount;
             memcpy(tbackup, get_top(this) - tcount, tcount * sizeof(word_t));
@@ -170,8 +180,8 @@ class Utcb : public UtcbBase {
     void pop() {
         uint l = layer();
         if(l > 1) {
-            const word_t *utbackup = msg + untyped_start();
-            const word_t *tbackup = msg + typed_start();
+            const word_t *utbackup = &item(untyped_start());
+            const word_t *tbackup = &item(typed_start());
             const int utcount = utbackup[0];
             const int tcount = tbackup[-1];
             memcpy(this, utbackup + 1, utcount * sizeof(word_t));

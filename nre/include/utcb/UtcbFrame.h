@@ -433,7 +433,7 @@ public:
         const size_t words = (sizeof(T) + sizeof(word_t) - 1) / sizeof(word_t);
         check_untyped_write(words);
         assert(Utcb::get_current_frame(_utcb->base()) == _utcb);
-        *reinterpret_cast<T*>(_utcb->msg + untyped()) = value;
+        *reinterpret_cast<T*>(_utcb->msg + untyped() * sizeof(word_t)) = value;
         _utcb->untyped += words;
         return *this;
     }
@@ -441,8 +441,8 @@ public:
         const size_t words = Math::blockcount<size_t>(value.length(), sizeof(word_t)) + 1;
         check_untyped_write(words);
         assert(Utcb::get_current_frame(_utcb->base()) == _utcb);
-        *reinterpret_cast<size_t*>(_utcb->msg + untyped()) = value.length();
-        memcpy(_utcb->msg + untyped() + 1, value.str(), value.length());
+        *reinterpret_cast<size_t*>(_utcb->msg + untyped() * sizeof(word_t)) = value.length();
+        memcpy(_utcb->msg + (untyped() + 1) * sizeof(word_t), value.str(), value.length());
         _utcb->untyped += words;
         return *this;
     }
@@ -459,16 +459,16 @@ public:
     UtcbFrameRef & operator>>(T &value) {
         const size_t words = (sizeof(T) + sizeof(word_t) - 1) / sizeof(word_t);
         check_untyped_read(words);
-        value = *reinterpret_cast<T*>(_utcb->msg + _upos);
+        value = *reinterpret_cast<T*>(_utcb->msg + _upos * sizeof(word_t));
         _upos += words;
         return *this;
     }
     UtcbFrameRef & operator>>(String &value) {
         check_untyped_read(1);
-        size_t len = *reinterpret_cast<size_t*>(_utcb->msg + _upos);
+        size_t len = *reinterpret_cast<size_t*>(_utcb->msg + _upos * sizeof(word_t));
         const size_t words = Math::blockcount<size_t>(len, sizeof(word_t)) + 1;
         check_untyped_read(words);
-        value.reset(reinterpret_cast<const char*>(_utcb->msg + _upos + 1), len);
+        value.reset(reinterpret_cast<const char*>(_utcb->msg + (_upos + 1) * sizeof(word_t)), len);
         _upos += words;
         return *this;
     }
