@@ -39,16 +39,16 @@ else
 fi
 
 echo "Downloading binutils, gcc and newlib..."
-wget -c http://ftp.gnu.org/gnu/binutils/binutils-2.21.1a.tar.bz2
+wget -c http://ftp.gnu.org/gnu/binutils/binutils-2.23.2.tar.bz2
 wget -c http://ftp.gnu.org/gnu/gcc/gcc-4.8.1/gcc-4.8.1.tar.bz2
 wget -c ftp://sources.redhat.com/pub/newlib/newlib-1.20.0.tar.gz
 
-BINVER=2.21.1
+BINVER=2.23.2
 GCCVER=4.8.1
 NEWLVER=1.20.0
 
 GCC_ARCH=gcc-$GCCVER.tar.bz2
-BINUTILS_ARCH=binutils-"$BINVER"a.tar.bz2
+BINUTILS_ARCH=binutils-$BINVER.tar.bz2
 NEWLIB_ARCH=newlib-$NEWLVER.tar.gz
 
 # setup
