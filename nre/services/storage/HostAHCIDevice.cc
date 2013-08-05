@@ -65,7 +65,15 @@ void HostAHCIDevice::init() {
 
     // enable irqs
     _regs->ie = 0xf98000f1;
-    identify_drive(_bufferds);
+    try {
+        identify_drive(_bufferds);
+    }
+    catch(...) {
+        // disable all interrupts (we couldn't acknowledge them because HostAHCICtrl will
+        // ignore this port since identify failed)
+        _regs->ie = 0;
+        throw;
+    }
     //set_features(0x3, 0x46);
     //set_features(0x2, 0);
     //return identify_drive(buffer);
