@@ -76,16 +76,16 @@ void HostAHCIDevice::readwrite(Producer<Storage::Packet> *prod, Storage::tag_typ
                                bool write) {
     ScopedLock<UserSm> guard(&_sm);
     size_t length = dma.bytecount();
-    // invalid offset or size?
-    if(length >> 13) {
+    // exceeds max. length?
+    if(length >> 22) {
         VTHROW(Exception, E_ARGS_INVALID,
-               "Device " << _id << ": Invalid sector count (" << (length >> 13) << ")");
+               "Device " << _id << ": Max. sector count exceeded (" << (length >> 9) << ")");
     }
 
     uint8_t command = has_lba48() ? 0x25 : 0xc8;
     if(write)
         command = has_lba48() ? 0x35 : 0xca;
-    set_command(command, sector, !write, length >> 13);
+    set_command(command, sector, !write, length >> 9);
 
     for(auto it = dma.begin(); it != dma.end(); ++it) {
         if(it->offset > ds.size() || it->offset + it->count > ds.size()) {
