@@ -24,7 +24,7 @@ OStream &operator<<(OStream &os, const UtcbFrameRef &frm) {
     os << "\tTranslate: " << Crd(frm._utcb->crd_translate) << "\n";
     os << "\tUntyped: " << frm.untyped() << "\n";
     for(size_t i = 0; i < frm.untyped(); ++i)
-        os << "\t\t" << i << ": " << fmt(frm._utcb->msg[i], "#x") << "\n";
+        os << "\t\t" << i << ": " << fmt(reinterpret_cast<word_t*>(frm._utcb->msg)[i], "#x") << "\n";
     os << "\tTyped: " << frm.typed() << "\n";
     for(size_t i = 0; i < frm.typed() * 2; i += 2) {
         os << "\t\t" << i << ": "

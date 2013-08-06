@@ -39,18 +39,16 @@ else
 fi
 
 echo "Downloading binutils, gcc and newlib..."
-wget -c http://ftp.gnu.org/gnu/binutils/binutils-2.21.1a.tar.bz2
-wget -c http://ftp.gnu.org/gnu/gcc/gcc-4.6.3/gcc-core-4.6.3.tar.bz2
-wget -c http://ftp.gnu.org/gnu/gcc/gcc-4.6.3/gcc-g++-4.6.3.tar.bz2
+wget -c http://ftp.gnu.org/gnu/binutils/binutils-2.23.2.tar.bz2
+wget -c http://ftp.gnu.org/gnu/gcc/gcc-4.8.1/gcc-4.8.1.tar.bz2
 wget -c ftp://sources.redhat.com/pub/newlib/newlib-1.20.0.tar.gz
 
-BINVER=2.21.1
-GCCVER=4.6.3
+BINVER=2.23.2
+GCCVER=4.8.1
 NEWLVER=1.20.0
 
-GCCCORE_ARCH=gcc-core-$GCCVER.tar.bz2
-GCCGPP_ARCH=gcc-g++-$GCCVER.tar.bz2
-BINUTILS_ARCH=binutils-"$BINVER"a.tar.bz2
+GCC_ARCH=gcc-$GCCVER.tar.bz2
+BINUTILS_ARCH=binutils-$BINVER.tar.bz2
 NEWLIB_ARCH=newlib-$NEWLVER.tar.gz
 
 # setup
@@ -139,8 +137,7 @@ fi
 export PATH=$PATH:$PREFIX/bin
 if $BUILD_GCC; then
     if [ $REBUILD -eq 1 ]; then
-        cat $GCCCORE_ARCH | bunzip2 | tar -C $SRC -xf -
-        cat $GCCGPP_ARCH | bunzip2 | tar -C $SRC -xf -
+        cat $GCC_ARCH | bunzip2 | tar -C $SRC -xf -
         mv $SRC/gcc-$GCCVER $SRC/gcc
         cd $ARCH && patch -p0 < gcc.diff
     fi
@@ -243,3 +240,7 @@ rm -Rf $DIST/$TARGET/include
 
 # copy crt* to basic gcc-stuff
 cp -f $BUILD/gcc/$TARGET/libgcc/crt*.o $DIST/lib/gcc/$TARGET/$GCCVER
+
+# we don't need to write to it anymore, so chown it back to root
+$SUDO chown -R root:root $DIST
+

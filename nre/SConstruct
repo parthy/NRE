@@ -10,7 +10,7 @@ elif target == 'x86_64':
 else:
     print "Please define NRE_TARGET to x86_32 or x86_64 first!"
     Exit(1)
-crossver = '4.6.3'
+crossver = '4.8.1'
 crossdir = os.path.abspath('/opt/nre-cross-' + target)
 
 hostenv = Environment(
@@ -22,7 +22,8 @@ env = Environment(
     CFLAGS = '-Wall -Wextra -std=c99',
     # without "-z max-page-size=0x1000" ld produces really large binaries for x86_64, because it
     # aligns to 2MiB (not only in virtual memory, but also in the binary)
-    LINKFLAGS = '-Wl,--no-undefined -static -Wl,-static -static-libgcc -Wl,-z,max-page-size=0x1000',
+    LINKFLAGS = '-nostartfiles -Wl,--no-undefined -static -Wl,-static -static-libgcc'
+        + ' -Wl,-z,max-page-size=0x1000',
     ENV = {'PATH' : crossdir + "/bin:" + os.environ['PATH']},
     CPPPATH = '#include',
     CXX = cross + '-g++',
@@ -73,31 +74,30 @@ env.Append(
     BUILDDIR = '#' + builddir,
     BINARYDIR = '#' + builddir + '/bin/apps',
     LIBPATH = '#' + builddir + '/bin/lib',
-    SYSLIBPATH = crossdir + '/lib',
-    SYSGCCLIBPATH = crossdir + '/lib/gcc/' + cross + '/' + crossver
+    SYSLIBPATH = crossdir + '/lib'
 )
 if target == 'x86_64':
     env.Append(LINK_ADDR = 0x300000000)
 else:
     env.Append(LINK_ADDR = 0x100000)
 
-def NREProgram(env, target, source, libs = [], cpppath = [], fixedaddr = False):
+def NREProgram(env, target, source, libs = [], cpppath = [], fixedaddr = False, ldscript = 'default'):
     # for better debugging: put every executable at a different address
     myenv = env.Clone()
     myenv.Replace(CPPPATH = [myenv['CPPPATH']] + cpppath)
     if not fixedaddr:
-        myenv.Append(LINKFLAGS = ' -Wl,--section-start=.init=' + ("0x%x" % env['LINK_ADDR']))
+        myenv.Append(LINKFLAGS = ' -Wl,--section-start=.text=' + ("0x%x" % env['LINK_ADDR']))
         env['LINK_ADDR'] += 0x100000
+    myenv['LINKFLAGS'] += ' -Wl,-T,toolchain/' + ldscript + '.ld'
     prog = myenv.Program(
-        target, source,
+        target, [myenv['LIBPATH'] + '/crt0.o'] + source,
         LIBS = ['stdc++','supc++'] + libs,
         LIBPATH = [myenv['LIBPATH'], myenv['SYSLIBPATH']]
     )
-    myenv.Depends(prog, myenv['SYSGCCLIBPATH'] + '/crt0.o')
-    myenv.Depends(prog, myenv['SYSGCCLIBPATH'] + '/crt1.o')
-    myenv.Depends(prog, myenv['SYSGCCLIBPATH'] + '/crtn.o')
+    myenv.Depends(prog, myenv['LIBPATH'] + '/crt0.o')
     for l in ['stdc++', 'c', 'm', 'g'] + libs:
         myenv.Depends(prog, myenv['LIBPATH'] + '/lib' + l + '.a')
+    myenv.Depends(prog, '#toolchain/' + ldscript + '.ld')
     myenv.Install(env['BINARYDIR'], prog)
     return prog
 

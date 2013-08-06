@@ -4,7 +4,6 @@ Import('env')
 import subprocess
 
 myenv = env.Clone()
-myenv['LINKFLAGS'] += ' -Wl,-T,services/root/linker_' + env['ARCH'] + '.ld'
 #myenv.Append(CXXFLAGS = ' -finstrument-functions -DPROFILE')
 
 proc = subprocess.Popen(
@@ -18,4 +17,4 @@ else:
     revision = resout.rstrip()
 myenv['CXXFLAGS'] += ' -DNRE_REV=\'\"' + revision + '\"\''
 
-myenv.NREProgram(myenv, 'root', Glob('*.cc'), fixedaddr = True)
+prog = myenv.NREProgram(myenv, 'root', Glob('*.cc'), fixedaddr = True, ldscript = 'root')

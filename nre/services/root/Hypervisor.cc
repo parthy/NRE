@@ -70,7 +70,7 @@ void Hypervisor::map_mem(uintptr_t phys, uintptr_t virt, size_t size) {
                 // the lowest bit that's different defines how many we can map with one Crd.
                 // with bit 0, its 2^0 = 1 at once, with bit 1, 2^1 = 2 and so on.
                 unsigned at_once = Math::bit_scan_forward(diff);
-                if((1 << at_once) < count) {
+                if((1UL << at_once) < count) {
                     // be carefull that we might have to align it to 1 << at_once first. this takes
                     // at most at_once typed items.
                     size_t free = uf.free_typed();

@@ -1,29 +1,29 @@
-diff -rcN src/gcc-4.6.1//config.sub src/gcc/config.sub
-*** src/gcc-4.6.1//config.sub	2010-05-25 15:22:07.000000000 +0200
---- src/gcc/config.sub	2012-03-25 09:46:49.000000000 +0200
+diff -rcN src/gcc-4.8.1/config.sub src/gcc/config.sub
+*** src/gcc-4.8.1/config.sub	2013-01-11 14:02:58.000000000 +0100
+--- src/gcc/config.sub	2013-08-02 16:32:29.534835590 +0200
 ***************
-*** 1297,1303 ****
+*** 1358,1364 ****
   	      | -hpux* | -unos* | -osf* | -luna* | -dgux* | -auroraux* | -solaris* \
-  	      | -sym* | -kopensolaris* \
+  	      | -sym* | -kopensolaris* | -plan9* \
   	      | -amigaos* | -amigados* | -msdos* | -newsos* | -unicos* | -aof* \
 ! 	      | -aos* | -aros* \
   	      | -nindy* | -vxsim* | -vxworks* | -ebmon* | -hms* | -mvs* \
   	      | -clix* | -riscos* | -uniplus* | -iris* | -rtu* | -xenix* \
   	      | -hiux* | -386bsd* | -knetbsd* | -mirbsd* | -netbsd* \
---- 1297,1303 ----
+--- 1358,1364 ----
   	      | -hpux* | -unos* | -osf* | -luna* | -dgux* | -auroraux* | -solaris* \
-  	      | -sym* | -kopensolaris* \
+  	      | -sym* | -kopensolaris* | -plan9* \
   	      | -amigaos* | -amigados* | -msdos* | -newsos* | -unicos* | -aof* \
 ! 	      | -aos* | -aros* | -nulnova* \
   	      | -nindy* | -vxsim* | -vxworks* | -ebmon* | -hms* | -mvs* \
   	      | -clix* | -riscos* | -uniplus* | -iris* | -rtu* | -xenix* \
   	      | -hiux* | -386bsd* | -knetbsd* | -mirbsd* | -netbsd* \
-diff -rcN src/gcc-4.6.1//gcc/config/nulnova.h src/gcc/gcc/config/nulnova.h
-*** src/gcc-4.6.1//gcc/config/nulnova.h	1970-01-01 01:00:00.000000000 +0100
---- src/gcc/gcc/config/nulnova.h	2012-03-25 09:49:23.000000000 +0200
+diff -rcN src/gcc-4.8.1/gcc/config/nulnova.h src/gcc/gcc/config/nulnova.h
+*** src/gcc-4.8.1/gcc/config/nulnova.h	1970-01-01 01:00:00.000000000 +0100
+--- src/gcc/gcc/config/nulnova.h	2013-08-02 18:05:39.946962929 +0200
 ***************
 *** 0 ****
---- 1,32 ----
+--- 1,31 ----
 +   #undef   STARTFILE_SPEC
 +   #define STARTFILE_SPEC "%{shared|pie:crt0S.o%s;:crt0.o%s} %{shared:crt1S.o%s;:crt1.o%s} %{shared|pie:crtbeginS.o%s;:crtbegin.o%s}"
 +   
@@ -54,11 +54,10 @@ diff -rcN src/gcc-4.6.1//gcc/config/nulnova.h src/gcc/gcc/config/nulnova.h
 +   #define USE_LD_AS_NEEDED 1
 +   #endif
 +   
-+   #undef TARGET_VERSION
-+   #define TARGET_VERSION fprintf(stderr, " (NOVA)");
-diff -rcN src/gcc-4.6.1//gcc/config/t-nulnova src/gcc/gcc/config/t-nulnova
-*** src/gcc-4.6.1//gcc/config/t-nulnova	1970-01-01 01:00:00.000000000 +0100
---- src/gcc/gcc/config/t-nulnova	2012-03-25 11:04:04.000000000 +0200
++   #define NO_IMPLICIT_EXTERN_C
+diff -rcN src/gcc-4.8.1/gcc/config/t-nulnova src/gcc/gcc/config/t-nulnova
+*** src/gcc-4.8.1/gcc/config/t-nulnova	1970-01-01 01:00:00.000000000 +0100
+--- src/gcc/gcc/config/t-nulnova	2013-08-02 16:41:36.818848056 +0200
 ***************
 *** 0 ****
 --- 1,36 ----
@@ -98,63 +97,51 @@ diff -rcN src/gcc-4.6.1//gcc/config/t-nulnova src/gcc/gcc/config/t-nulnova
 + 	  $$(DESTDIR)$$(slibdir)$(SHLIB_SLIBDIR_QUAL)/$(SHLIB_SONAME); \
 + 	rm -f $$(DESTDIR)$$(slibdir)$(SHLIB_SLIBDIR_QUAL)/$(SHLIB_SOLINK); \
 + 	$(SHLIB_INSTALL_SOLINK)
-diff -rcN src/gcc-4.6.1//gcc/config.gcc src/gcc/gcc/config.gcc
-*** src/gcc-4.6.1//gcc/config.gcc	2011-05-22 22:03:43.000000000 +0200
---- src/gcc/gcc/config.gcc	2012-03-25 11:02:57.000000000 +0200
+diff -rcN src/gcc-4.8.1/gcc/config.gcc src/gcc/gcc/config.gcc
+*** src/gcc-4.8.1/gcc/config.gcc	2013-03-13 10:47:41.000000000 +0100
+--- src/gcc/gcc/config.gcc	2013-08-02 17:05:11.802880287 +0200
 ***************
-*** 481,486 ****
---- 481,492 ----
-  
-  # Common parts for widely ported systems.
-  case ${target} in
-+ *-*-nulnova*)
-+   extra_parts="crtbegin.o crtbeginS.o crtend.o crtendS.o"
-+   gas=yes
-+   gnu_ld=yes
-+   default_use_cxa_atexit=yes
-+   ;;
-  *-*-darwin*)
-    tmake_file="t-darwin ${cpu_type}/t-darwin"
-    tm_file="${tm_file} darwin.h"
-***************
-*** 703,708 ****
---- 709,719 ----
+*** 813,818 ****
+--- 813,826 ----
+  esac
   
   case ${target} in
-  # Support site-specific machine types.
 + i[3-7]86-*-nulnova*)
 + 	tm_file="${tm_file} i386/unix.h i386/att.h dbxelf.h elfos.h i386/i386elf.h nulnova.h"
 + 	tmake_file="t-nulnova i386/t-crtstuff t-svr4"
-+ 	use_fixproto=yes
-+ 	;;
-  *local*)
-  	rest=`echo ${target} | sed -e "s/$cpu_type-//"`
-  	tm_file=${cpu_type}/$rest.h
-diff -rcN src/gcc-4.6.1//libgcc/config.host src/gcc/libgcc/config.host
-*** src/gcc-4.6.1//libgcc/config.host	2011-03-14 07:06:23.000000000 +0100
---- src/gcc/libgcc/config.host	2012-03-25 11:04:56.000000000 +0200
++ 	gas=yes
++ 	gnu_ld=yes
++ 	default_use_cxa_atexit=yes
++  	use_fixproto=yes
++  	;;
+  aarch64*-*-elf)
+  	tm_file="${tm_file} dbxelf.h elfos.h newlib-stdint.h"
+  	tm_file="${tm_file} aarch64/aarch64-elf.h aarch64/aarch64-elf-raw.h"
+diff -rcN src/gcc-4.8.1/libgcc/config.host src/gcc/libgcc/config.host
+*** src/gcc-4.8.1/libgcc/config.host	2013-02-04 20:06:20.000000000 +0100
+--- src/gcc/libgcc/config.host	2013-08-02 16:47:30.070856102 +0200
 ***************
-*** 176,181 ****
---- 176,184 ----
+*** 280,285 ****
+--- 280,288 ----
+  esac
   
   case ${host} in
-  # Support site-specific machine types.
 + i[3-7]86-*-nulnova*)
 + 	extra_parts="crtbegin.o crtbeginS.o crtend.o crtendS.o"
 + 	;;
-  *local*)
-  	rest=`echo ${host} | sed -e "s/$cpu_type-//"`
-  	if test -f $srcdir/config/${cpu_type}/t-$rest
-diff -rcN src/gcc-4.6.1/gcc/gthr-posix.h src/gcc/gcc/gthr-posix.h 
-*** src/gcc-4.6.1/gcc/gthr-posix.h	2012-05-12 11:53:05.000000000 +0200
---- src/gcc/gcc/gthr-posix.h	2012-05-12 11:53:34.000000000 +0200
+  aarch64*-*-elf)
+  	extra_parts="$extra_parts crtbegin.o crtend.o crti.o crtn.o"
+  	tmake_file="${tmake_file} ${cpu_type}/t-aarch64"
+diff -rcN src/gcc-4.8.1/libgcc/gthr-posix.h src/gcc/libgcc/gthr-posix.h
+*** src/gcc-4.8.1/libgcc/gthr-posix.h	2013-02-04 20:06:20.000000000 +0100
+--- src/gcc/libgcc/gthr-posix.h	2013-08-02 17:12:02.962889652 +0200
 ***************
-*** 40,45 ****
---- 40,46 ----
+*** 33,38 ****
+--- 33,39 ----
+  #define __GTHREADS_CXX0X 1
   
   #include <pthread.h>
-  #include <unistd.h>
 + #include <sched.h>
   
-  typedef pthread_t __gthread_t;
-  typedef pthread_key_t __gthread_key_t;
+  #if ((defined(_LIBOBJC) || defined(_LIBOBJC_WEAK)) \
+       || !defined(_GTHREAD_USE_MUTEX_TIMEDLOCK))

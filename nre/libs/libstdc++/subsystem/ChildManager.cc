@@ -564,7 +564,6 @@ void ChildManager::Portals::io(Child *c) {
 }
 
 void ChildManager::Portals::sc(Child *c) {
-    ChildManager *cm = Thread::current()->get_tls<ChildManager*>(Thread::TLS_PARAM);
     UtcbFrameRef uf;
     try {
         Sc::Command cmd;
