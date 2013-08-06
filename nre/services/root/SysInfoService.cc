@@ -24,11 +24,11 @@
 using namespace nre;
 
 // text start and end
-extern void *_init;
-extern void *__fini_array_end;
+extern void *TEXT_BEGIN;
+extern void *TEXT_END;
 // data start and end
-extern void *__fini_array_end;
-extern void *end;
+extern void *DATA_BEGIN;
+extern void *DATA_END;
 
 const char *SysInfoService::get_root_info(size_t &virt, size_t &phys, size_t &threads) {
     // find our own module; we're always the first one
@@ -52,10 +52,10 @@ const char *SysInfoService::get_root_info(size_t &virt, size_t &phys, size_t &th
     }
     // determine virtual memory by calculating the mem for our text and data area and the one we
     // assign dynamically.
-    size_t textsize = reinterpret_cast<uintptr_t>(&__fini_array_end)
-                      - reinterpret_cast<uintptr_t>(&_init);
-    size_t datasize = reinterpret_cast<uintptr_t>(&end)
-                      - reinterpret_cast<uintptr_t>(&__fini_array_end);
+    size_t textsize = reinterpret_cast<uintptr_t>(&TEXT_END)
+                      - reinterpret_cast<uintptr_t>(&TEXT_BEGIN);
+    size_t datasize = reinterpret_cast<uintptr_t>(&DATA_END)
+                      - reinterpret_cast<uintptr_t>(&DATA_BEGIN);
     virt = VirtualMemory::used() + textsize + datasize;
     // log and sysinfo
     threads = 2;

@@ -18,7 +18,7 @@
 
 using namespace nre;
 
-extern void *edata;
+extern void *DATA_END;
 
 RegionManager<> VirtualMemory::_regs INIT_PRIO_VMEM;
 UserSm VirtualMemory::_sm INIT_PRIO_VMEM;
@@ -27,6 +27,6 @@ size_t VirtualMemory::_used = 0;
 size_t VirtualMemory::_ramend = 0;
 
 VirtualMemory::VirtualMemory() {
-    uintptr_t begin = Math::round_up<uintptr_t>(reinterpret_cast<uintptr_t>(&edata), ExecEnv::PAGE_SIZE);
+    uintptr_t begin = Math::round_up<uintptr_t>(reinterpret_cast<uintptr_t>(&DATA_END), ExecEnv::PAGE_SIZE);
     _regs.free(begin, RAM_BEGIN - begin);
 }

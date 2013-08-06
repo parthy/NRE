@@ -29,6 +29,10 @@ struct GlobalObj {
 };
 
 /**
+ * Will be called by crt0.S
+ */
+EXTERN_C void _init();
+/**
  * Will be called by gcc at the beginning for every global object to register the
  * destructor of the object
  */
@@ -37,9 +41,26 @@ EXTERN_C int __cxa_atexit(void (*f)(void *), void *p, void *d);
  * We'll call this function in exit() to call all destructors registered by *atexit()
  */
 EXTERN_C void __cxa_finalize(void *d);
+/**
+ * Is added by libgcc_eh and has to be called at startup
+ */
+EXTERN_C void __register_frame(const void *begin);
 
 static size_t exitFuncCount = 0;
 static GlobalObj exitFuncs[MAX_EXIT_FUNCS];
+extern void (*CTORS_BEGIN)();
+extern void (*CTORS_END)();
+extern void *EH_FRAME_BEGIN;
+void *__dso_handle;
+
+void _init() {
+    // init exception handling
+    __register_frame(&EH_FRAME_BEGIN);
+
+    // call constructors
+    for(void (**func)() = &CTORS_END; func != &CTORS_BEGIN; )
+        (*--func)();
+}
 
 int __cxa_atexit(void (*f)(void *), void *p, void *d) {
     if(exitFuncCount >= MAX_EXIT_FUNCS)
