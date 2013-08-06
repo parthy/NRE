@@ -240,3 +240,7 @@ rm -Rf $DIST/$TARGET/include
 
 # copy crt* to basic gcc-stuff
 cp -f $BUILD/gcc/$TARGET/libgcc/crt*.o $DIST/lib/gcc/$TARGET/$GCCVER
+
+# we don't need to write to it anymore, so chown it back to root
+$SUDO chown -R root:root $DIST
+
