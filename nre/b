@@ -76,6 +76,7 @@ help() {
     echo "                             ~/.novaboot with a pulsar config"
     echo "    dis=<prog>:              run objdump -SC <prog> (the cross-compiler version)"
     echo "    elf=<prog>:              run readelf -a <prog> (the cross-compiler version)"
+    echo "    nm=<prog>:               run nm -SC <prog> (the cross-compiler version)"
     echo "    constr=<prog>:           list the contructor calls of <prog>"
     echo "    straddr=<prog> <str>:    search for the string <str> in <prog> and display"
     echo "                             the addresses"
@@ -142,7 +143,7 @@ case "$cmd" in
             exit 1
         fi
         ;;
-    prof=*|straddr=*|dis=*|elf=*|constr=*|trace=*|dbg=*)
+    prof=*|straddr=*|dis=*|elf=*|constr=*|nm=*|trace=*|dbg=*)
         if [ "`echo $cmd | grep '^straddr='`" != "" ] && [ "$script" = "" ]; then
             echo "Usage: $0 $cmd <string>" >&2
             exit 1
@@ -258,6 +259,9 @@ case "$cmd" in
         ;;
     constr=*)
     	./tools/listconstr.sh $crossdir $cross $build/bin/apps/$binary
+        ;;
+    nm=*)
+        $crossdir/bin/$cross-nm -SC $build/bin/apps/$binary | sort | less
         ;;
     straddr=*)
         echo "Strings containing '$script' in $binary:"
