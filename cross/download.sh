@@ -13,7 +13,7 @@ if [ "$target" != "x86_32" ] && [ "$target" != "x86_64" ]; then
 fi
 
 echo "This will download a precompiled cross-compiler for target $target into /opt/nre-cross-$target"
-echo "Currently, the only ones available have been built on Ubuntu hosts."
+echo "Currently, the only ones available have been built on Ubuntu and Fedora hosts."
 echo "It will probably work on other distributions as well, but it hasn't been tested yet.\n"
 
 host=""
@@ -21,14 +21,17 @@ while [ "$host" = "" ]; do
     echo "Please select your host platform:"
     echo "1. Ubuntu 12.10 i686"
     echo "2. Ubuntu 13.04 x86_64"
-    echo "3. Other (build your own cross-compiler)"
-    echo -n "Your choice (1, 2 or 3): "
+    echo "3. Fedora 19 x86_64"
+    echo "4. Other (build your own cross-compiler)"
+    echo -n "Your choice (1, 2, 3 or 4): "
     read choice
     if [ "$choice" = "1" ]; then
         host="ubuntu1210-i686"
     elif [ "$choice" = "2" ]; then
         host="ubuntu1304-x86_64"
     elif [ "$choice" = "3" ]; then
+        host="fedora19-x86_64"
+    elif [ "$choice" = "4" ]; then
         echo "Ok, please use the build.sh to build your own compiler. Bye!"
         exit 0
     else
@@ -37,11 +40,11 @@ while [ "$host" = "" ]; do
 done
 
 echo "\nDownloading cross-compiler for host $host and target $target..."
-wget -c http://os.inf.tu-dresden.de/~nils/nre-cross-$host-$target.tar.gz
+wget -c http://os.inf.tu-dresden.de/~nils/nre-cross-$host-$target.tar.xz
 
 echo "\nExtracting it..."
-$SUDO tar xfvz nre-cross-$host-$target.tar.gz -C /
+$SUDO tar xfvJ nre-cross-$host-$target.tar.xz -C /
 
 echo "\nRemoving archive..."
-rm -f nre-cross-$host-$target.tar.gz
+rm -f nre-cross-$host-$target.tar.xz
 
