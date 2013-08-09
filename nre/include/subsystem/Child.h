@@ -245,8 +245,7 @@ private:
         : SListTreapNode<size_t>(id), RefCounted(), _cm(cm), _id(id), _cmdline(cmdline), _started(),
           _pd(), _ec(), _pts(), _ptcount(), _regs(), _io(PortManager::USED), _scs(), _gsis(),
           _sessions(), _joins(),  _gsi_caps(CapSelSpace::get().allocate(Hip::MAX_GSIS)),
-          _gsi_next(), _entry(), _main(), _stack(), _utcb(), _hip(), _last_fault_addr(),
-          _last_fault_cpu(), _sm() {
+          _gsi_next(), _entry(), _main(), _stack(), _utcb(), _hip(), _sm() {
     }
 public:
     virtual ~Child();
@@ -296,8 +295,6 @@ private:
     uintptr_t _stack;
     uintptr_t _utcb;
     uintptr_t _hip;
-    uintptr_t _last_fault_addr;
-    cpu_t _last_fault_cpu;
     UserSm _sm;
 };
 

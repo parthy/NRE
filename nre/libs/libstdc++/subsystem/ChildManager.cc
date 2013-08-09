@@ -736,13 +736,6 @@ void ChildManager::switch_to(UtcbFrameRef &uf, Child *c) {
                      src->desc().size() >> ExecEnv::PAGE_SHIFT, Crd::MEM_ALL).revoke(false);
             CapRange(dst->desc().origin() >> ExecEnv::PAGE_SHIFT,
                      dst->desc().size() >> ExecEnv::PAGE_SHIFT, Crd::MEM_ALL).revoke(false);
-            // we have to reset the last pf information here, because of the revoke. otherwise it
-            // can happen that last time CPU X caused the last fault and this time, CPU X causes
-            // the second fault (the first one will handle it and the second one will find it already
-            // mapped). therefore, it might be the same address and same CPU again which caused an
-            // "already-mapped" fault again and thus, it would be killed.
-            c->_last_fault_addr = 0;
-            c->_last_fault_cpu = 0;
             // now copy the content
             memcpy(reinterpret_cast<char*>(dst->desc().origin()),
                    reinterpret_cast<char*>(src->desc().origin()),
@@ -768,9 +761,6 @@ void ChildManager::switch_to(UtcbFrameRef &uf, Child *c) {
                 if(!src && !dst)
                     continue;
 
-                // also reset the information here
-                it->_last_fault_addr = 0;
-                it->_last_fault_cpu = 0;
                 if(src)
                     src->switch_to(dstorg);
                 if(dst)
@@ -888,29 +878,16 @@ void ChildManager::Portals::ex_pf(Child *c) {
             Crd res = Syscalls::lookup(Crd(ds->origin(pfaddr) >> ExecEnv::PAGE_SHIFT, 0, Crd::MEM));
             // if so, remap it
             if(res.is_null()) {
-                // reset it here as well. this is necessary for subsystems (where our parent has
-                // revoked the memory)
-                c->_last_fault_addr = 0;
-                c->_last_fault_cpu = 0;
                 // reset all permissions since we want to remap it completely.
                 // note that this assumes that we're revoking always complete dataspaces.
                 ds->all_perms(0);
                 remap = true;
-            }
-            // same fault for same cpu again?
-            else if(pfpage == c->_last_fault_addr && cpu == c->_last_fault_cpu) {
-                LOG(CHILD_KILL, "Child '" << c->cmdline() << "': Caused fault for "
-                                          << fmt(pfaddr, "p") << " on cpu " << pcpu
-                                          << " twice. Giving up :(\n");
-                kill = true;
             }
             else {
                 LOG(PFS, "Child '" << c->cmdline() << "': Pagefault for " << fmt(pfaddr, "p")
                                    << " @ " << fmt(eip, "p") << " on cpu " << pcpu << ", error="
                                    << fmt(error, "#x") << " (page already mapped)\n");
                 LOG(PFS_DETAIL, "See regionlist:\n" << c->reglist());
-                c->_last_fault_addr = pfpage;
-                c->_last_fault_cpu = cpu;
             }
         }
 
