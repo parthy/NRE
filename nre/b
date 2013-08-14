@@ -169,6 +169,27 @@ echo "Working with $NRE_TARGET in $NRE_BUILD mode"
 if $dobuild; then
     echo "Building NRE and NOVA with $cpus jobs..."
 
+    (
+        cd ..
+        # just in case the repo URL will change someday (doesn't hurt)
+        git submodule sync
+        # warn user if the status of a submodule isn't as expected
+        git submodule status | while read line; do
+            case $line in
+                +*) substatus="other revision" ;;
+                -*) substatus="not initialized" ;;
+                U*) substatus="conflict" ;;
+            esac
+            case $line in
+                +*|-*|U*)
+                    subname=`echo $line | sed -e 's/^.[[:xdigit:]]* //g'` 
+                    echo "\33[1mThe status of submodule $subname is not as expected ($substatus)."
+                    echo "Maybe you want to do an 'git submodule update --init'?\33[0m"
+                    ;;
+            esac
+        done
+    )
+
     # build userland
     scons $opts || exit 1
 
