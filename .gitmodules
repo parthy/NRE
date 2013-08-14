@@ -3,4 +3,4 @@
 	url = https://github.com/TUD-OS/NOVA.git
 [submodule "nre/libs/libseoul"]
 	path = nre/libs/libseoul
-	url = https://github.com/Nils-TUD/seoul.git
+	url = https://github.com/TUD-OS/seoul.git
