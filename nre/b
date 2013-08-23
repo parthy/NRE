@@ -27,6 +27,9 @@ fi
 if [ -z "$QEMU" ]; then
    export QEMU=qemu-system-x86_64
 fi
+if [ "$NRE_CC" != "clang" ]; then
+    export NRE_CC=gcc
+fi
 
 # target dependend values
 if [ "$NRE_TARGET" = "x86_32" ]; then
@@ -93,6 +96,10 @@ help() {
     echo "                             mode optimizations are disabled, debug infos are"
     echo "                             available and assertions are active. In release"
     echo "                             mode all that is disabled. The default is release."
+    echo "    NRE_CC:                  the compiler to use for NRE (gcc or clang). The"
+    echo "                             default is gcc. Note that we use only the clang"
+    echo "                             frontend. In every case, the gcc cross-compiler"
+    echo "                             is required for linking, libsupc++, ..."
     echo "    NRE_VERBOSE:             if 1, all executed build commands are printed."
     echo "    NRE_DBGNOVA:             add the symbol-file of NOVA to gdb (does only"
     echo "                             affect the command dbg=*)."
@@ -170,7 +177,7 @@ esac
 echo "Working with $NRE_TARGET in $NRE_BUILD mode"
 
 if $dobuild; then
-    echo "Building NRE and NOVA with $cpus jobs..."
+    echo "Building NRE and NOVA with $cpus jobs using $NRE_CC..."
 
     (
         cd ..

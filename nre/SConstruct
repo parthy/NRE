@@ -24,15 +24,40 @@ env = Environment(
     # aligns to 2MiB (not only in virtual memory, but also in the binary)
     LINKFLAGS = '-nostartfiles -Wl,--no-undefined -static -Wl,-static -static-libgcc'
         + ' -Wl,-z,max-page-size=0x1000',
-    ENV = {'PATH' : crossdir + "/bin:" + os.environ['PATH']},
+    ENV = {
+        'PATH' : crossdir + "/bin:" + os.environ['PATH'],
+        # required for colored outputs
+        'HOME' : os.environ['HOME'],
+        'TERM' : os.environ['TERM']
+   	},
     CPPPATH = '#include',
-    CXX = cross + '-g++',
     LD = cross + '-ld',
     AS = cross + '-as',
-    CC = cross + '-gcc',
     AR = cross + '-ar',
     RANLIB = cross + '-ranlib',
 )
+
+compiler = os.environ.get('NRE_CC') or 'gcc'
+if compiler == 'gcc':
+    env.Replace(
+        CXX = cross + '-g++',
+        CC = cross + '-gcc'
+    )
+else:
+    env.Replace(
+        CXX = 'clang++',
+        CC = 'clang',
+        LINK = cross + '-gcc',
+    )
+    if target == 'x86_64':
+        hosttriple = 'x86_64-pc-linux-gnu'
+    else:
+        hosttriple = 'i686-pc-linux-gnu'
+    env.Append(
+        CXXFLAGS = ' -target ' + hosttriple,
+        CFLAGS = ' -target ' +  hosttriple,
+        ASPPFLAGS = ' -Wa,-triple,' + hosttriple
+    )
 
 btype = os.environ.get('NRE_BUILD')
 if btype == 'debug':
