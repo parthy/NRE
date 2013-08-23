@@ -99,7 +99,8 @@ env.Append(
     BUILDDIR = '#' + builddir,
     BINARYDIR = '#' + builddir + '/bin/apps',
     LIBPATH = '#' + builddir + '/bin/lib',
-    SYSLIBPATH = crossdir + '/lib'
+    SYSLIBPATH = crossdir + '/lib',
+    CROSS = cross
 )
 if target == 'x86_64':
     env.Append(LINK_ADDR = 0x300000000)
