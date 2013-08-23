@@ -51,7 +51,8 @@ public:
         // don't allocate the ports here, since VBE has already done that. in particular, it is
         // important that our destructor doesn't release them.
         : Screen(), _ports(0x3d4, 2, false),
-          _ds(VGA_PAGE_SIZE * PAGES, nre::DataSpaceDesc::ANONYMOUS, nre::DataSpaceDesc::RW, VGA_MEM) {
+          _ds(VGA_PAGE_SIZE * PAGES, nre::DataSpaceDesc::ANONYMOUS, nre::DataSpaceDesc::RW, VGA_MEM),
+          _last() {
     }
 
     virtual nre::DataSpace &mem() {

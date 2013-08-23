@@ -24,10 +24,10 @@
 
 using namespace nre;
 
-VBE::VBE() : _clock(nre::Hip::get().freq_bus * 1000), _mb(&_clock, nullptr),
+VBE::VBE() : _enabled(false), _clock(nre::Hip::get().freq_bus * 1000), _mb(&_clock, nullptr),
              _hostmb(&_clock, nullptr),
              _mem(1 << 20, DataSpaceDesc::LOCKED, DataSpaceDesc::RW, 1), _pcicfg("pcicfg"),
-             _cpu(), _timeout(), _instructions() {
+             _cpu(), _timeout(), _instructions(), _modecount(), _version(), _modes() {
     _mb.bus_hostop.  add(this, receive_static<MessageHostOp>);
     _mb.bus_timer.   add(this, receive_static<MessageTimer>);
     _mb.bus_hwioin.  add(this, receive_static<MessageHwIOIn>);
@@ -54,54 +54,67 @@ VBE::VBE() : _clock(nre::Hip::get().freq_bus * 1000), _mb(&_clock, nullptr),
         _mb.bus_ioout.send(m);
     }
 
-    // check for VBE
-    nre::Console::InfoBlock *p = reinterpret_cast<nre::Console::InfoBlock*>(mem() + (ES_SEG0 << 4));
-    p->tag = nre::Console::TAG_VBE2;
-    if(vbe_call(0x4f00, ES_SEG0))
-        throw Exception(E_NOT_FOUND, "No VBE found");
-    if(p->version < 0x200)
-        VTHROW(Exception, E_NOT_FOUND, "VBE version " << p->version << " too old ( >= 2.0 required)");
-    // we need only the version from the InfoBlock
-    _version = p->version;
+    try {
+        // check for VBE
+        nre::Console::InfoBlock *p = reinterpret_cast<nre::Console::InfoBlock*>(mem() + (ES_SEG0 << 4));
+        p->tag = nre::Console::TAG_VBE2;
+        if(vbe_call(0x4f00, ES_SEG0))
+            throw Exception(E_NOT_FOUND, "No VBE found");
+        if(p->version < 0x200)
+            VTHROW(Exception, E_NOT_FOUND, "VBE version " << p->version << " too old ( >= 2.0 required)");
+        // we need only the version from the InfoBlock
+        _version = p->version;
 
-    // we need only the version from the InfoBlock
-    LOG(VESA, "Found VBE:\n");
-    LOG(VESA, "   Version: " << fmt(p->version, "#x") << "\n");
-    LOG(VESA, "   Tag: " << fmt(p->tag, "#x") << "\n");
-    LOG(VESA, "   Memory size: " << fmt(p->memory << 16, "#x") << "\n");
-    LOG(VESA, "   OEM: " << vbe_to_ptr<char*>(p->oem_string) << "\n");
-    LOG(VESA, "   Vendor: " << vbe_to_ptr<char*>(p->oem_vendor) << "\n");
-    LOG(VESA, "   Product: " << vbe_to_ptr<char*>(p->oem_product) << "\n");
-    LOG(VESA, "   Product revision: " << vbe_to_ptr<char*>(p->oem_product_rev) << "\n");
+        // we need only the version from the InfoBlock
+        LOG(VESA, "Found VBE:\n");
+        LOG(VESA, "   Version: " << fmt(p->version, "#x") << "\n");
+        LOG(VESA, "   Tag: " << fmt(p->tag, "#x") << "\n");
+        LOG(VESA, "   Memory size: " << fmt(p->memory << 16, "#x") << "\n");
+        LOG(VESA, "   OEM: " << vbe_to_ptr<char*>(p->oem_string) << "\n");
+        LOG(VESA, "   Vendor: " << vbe_to_ptr<char*>(p->oem_vendor) << "\n");
+        LOG(VESA, "   Product: " << vbe_to_ptr<char*>(p->oem_product) << "\n");
+        LOG(VESA, "   Product revision: " << vbe_to_ptr<char*>(p->oem_product_rev) << "\n");
 
-    // get modes
-    size_t modecount = 0;
-    unsigned short *video_mode_ptr = vbe_to_ptr<unsigned short*>(p->video_mode_ptr);
-    while(modecount < 32768 && video_mode_ptr[modecount] != 0xffff)
-        modecount++;
-    _modes = new nre::Console::ModeInfo[modecount + 1];
+        // get modes
+        size_t modecount = 0;
+        unsigned short *video_mode_ptr = vbe_to_ptr<unsigned short*>(p->video_mode_ptr);
+        while(modecount < 32768 && video_mode_ptr[modecount] != 0xffff)
+            modecount++;
+        _modes = new nre::Console::ModeInfo[modecount + 1];
+        add_vga_mode();
 
-    // add standard vga text mode #3
-    {
-        _modes[_modecount]._vesa_mode = 3;
-        _modes[_modecount].attr = 0x1;
-        _modes[_modecount].resolution[0] = 80;
-        _modes[_modecount].resolution[1] = 25;
-        _modes[_modecount].bytes_per_scanline = 80 * 2;
-        _modes[_modecount].bpp = 16;
-        _modes[_modecount].phys_base = 0xb8000;
-        _modecount++;
+        // add modes with linear framebuffer
+        for(size_t i = 0; i < modecount; i++) {
+            unsigned short mode = vbe_to_ptr<unsigned short*>(p->video_mode_ptr)[i];
+            if(!vbe_call(0x4f01, ES_SEG1, mode))
+                add_mode(mode, ES_SEG1, 0x81);
+        }
+        _enabled = true;
     }
-
-    // add modes with linear framebuffer
-    for(size_t i = 0; i < modecount; i++) {
-        unsigned short mode = vbe_to_ptr<unsigned short*>(p->video_mode_ptr)[i];
-        if(!vbe_call(0x4f01, ES_SEG1, mode))
-            add_mode(mode, ES_SEG1, 0x81);
+    catch(const Exception &e) {
+        LOG(VESA, "VESA initialization failed: " << e.msg() << "Disabling it.\n");
+        add_vga_mode();
     }
 }
 
+void VBE::add_vga_mode() {
+    if(!_modes)
+        _modes = new nre::Console::ModeInfo[1];
+    // add standard vga text mode #3
+    _modes[_modecount]._vesa_mode = 3;
+    _modes[_modecount].attr = 0x1;
+    _modes[_modecount].resolution[0] = 80;
+    _modes[_modecount].resolution[1] = 25;
+    _modes[_modecount].bytes_per_scanline = 80 * 2;
+    _modes[_modecount].bpp = 16;
+    _modes[_modecount].phys_base = 0xb8000;
+    _modecount++;
+}
+
 void VBE::set_mode(size_t index) {
+    if(!_enabled)
+        return;
+
     unsigned instructions = _instructions;
     timevalue start = _hostmb.clock()->clock(1000000);
 

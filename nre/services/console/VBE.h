@@ -61,6 +61,7 @@ private:
     bool vbe_call(unsigned eax, unsigned short es_seg, unsigned ecx = 0, unsigned edx = 0,
                   unsigned ebx = 0);
 
+    void add_vga_mode();
     void add_mode(unsigned short mode, unsigned seg, unsigned min_attributes);
     char *mem() const {
         return reinterpret_cast<char*>(_mem.virt());
@@ -70,6 +71,7 @@ private:
         return reinterpret_cast<T>(mem() + (ptr & 0xffff) + ((ptr >> 12) & 0xffff0));
     }
 
+    bool _enabled;
     ::Clock _clock;
     Motherboard _mb;
     Motherboard _hostmb;
