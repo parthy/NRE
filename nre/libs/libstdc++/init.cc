@@ -50,6 +50,8 @@ static size_t exitFuncCount = 0;
 static GlobalObj exitFuncs[MAX_EXIT_FUNCS];
 extern void (*CTORS_BEGIN)();
 extern void (*CTORS_END)();
+extern void (*CTORS_REVERSE_BEGIN)();
+extern void (*CTORS_REVERSE_END)();
 extern void *EH_FRAME_BEGIN;
 void *__dso_handle;
 
@@ -60,6 +62,9 @@ void _init() {
     // call constructors
     for(void (**func)() = &CTORS_END; func != &CTORS_BEGIN; )
         (*--func)();
+    // call reverse constructors (for clang)
+    for(void (**func)() = &CTORS_REVERSE_BEGIN; func != &CTORS_REVERSE_END; func++)
+        (*func)();
 }
 
 int __cxa_atexit(void (*f)(void *), void *p, void *d) {

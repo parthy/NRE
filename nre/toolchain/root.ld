@@ -20,8 +20,11 @@ SECTIONS
         CTORS_BEGIN = .;
         KEEP(*(.ctors))
         KEEP(*(SORT(.ctors.*)))
-        KEEP(*(.init_array))
         CTORS_END = .;
+        CTORS_REVERSE_BEGIN = .;
+        KEEP(*(SORT(.init_array.*)))
+        KEEP(*(.init_array))
+        CTORS_REVERSE_END = .;
     } : text
     
     .dtors : {
