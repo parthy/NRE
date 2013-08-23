@@ -153,38 +153,6 @@ class OStream {
     };
 
     /**
-     * This class can be written into an OStream to apply formatting while using the stream operators
-     * It will be used by the freestanding fmt() function, which makes it shorter because of template
-     * parameter type inference.
-     */
-    template<typename T>
-    class Format {
-    public:
-        explicit Format(const char *fmt, const T &value, uint pad = 0, uint prec = -1)
-            : _fmt(fmt), _value(value), _pad(pad), _prec(prec) {
-        }
-
-        const char *fmt() const {
-            return _fmt;
-        }
-        const T &value() const {
-            return _value;
-        }
-        uint padding() const {
-            return _pad;
-        }
-        uint precision() const {
-            return _prec;
-        }
-
-    private:
-        const char *_fmt;
-        const T &_value;
-        uint _pad;
-        uint _prec;
-    };
-
-    /**
      * We use template specialization to do different formatting operations depending on the
      * type given to fmt().
      */
@@ -246,6 +214,38 @@ class OStream {
     };
 
 public:
+    /**
+     * This class can be written into an OStream to apply formatting while using the stream operators
+     * It will be used by the freestanding fmt() function, which makes it shorter because of template
+     * parameter type inference.
+     */
+    template<typename T>
+    class Format {
+    public:
+        explicit Format(const char *fmt, const T &value, uint pad = 0, uint prec = -1)
+            : _fmt(fmt), _value(value), _pad(pad), _prec(prec) {
+        }
+
+        const char *fmt() const {
+            return _fmt;
+        }
+        const T &value() const {
+            return _value;
+        }
+        uint padding() const {
+            return _pad;
+        }
+        uint precision() const {
+            return _prec;
+        }
+
+    private:
+        const char *_fmt;
+        const T &_value;
+        uint _pad;
+        uint _prec;
+    };
+
     explicit OStream() {
     }
     virtual ~OStream() {
