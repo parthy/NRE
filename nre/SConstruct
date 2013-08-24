@@ -58,7 +58,7 @@ guestenv = Environment(
     LINKFLAGS = '-m32 -fno-hosted -nostdlib -Wall -Wextra -ansi -Wl,--build-id=none'
 )
 
-verbose = os.environ.get('VERBOSE',0);
+verbose = os.environ.get('NRE_VERBOSE',0);
 if int(verbose) == 0:
     hostenv['ASCOMSTR'] = guestenv['ASCOMSTR'] = env['ASCOMSTR'] = "AS $TARGET"
     hostenv['ASPPCOMSTR'] = guestenv['ASPPCOMSTR'] = env['ASPPCOMSTR'] = "ASPP $TARGET"
