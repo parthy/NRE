@@ -19,7 +19,7 @@ if [ -z "$NRE_TFTPDIR" ]; then
     export NRE_TFTPDIR=/var/lib/tftpboot
 fi
 if [ -z "$NRE_GDB_X86_32" ]; then
-    export NRE_GDB_X86_32=gdbtui
+    export NRE_GDB_X86_32="gdb -tui"
 fi
 if [ -z "$NRE_GDB_X86_64" ]; then
     export NRE_GDB_X86_64=x86_64-linux-gnu-gdbtui
@@ -93,6 +93,8 @@ help() {
     echo "                             mode optimizations are disabled, debug infos are"
     echo "                             available and assertions are active. In release"
     echo "                             mode all that is disabled. The default is release."
+    echo "    NRE_DBGNOVA:             add the symbol-file of NOVA to gdb (does only"
+    echo "                             affect the command dbg=*)."
     echo "    NRE_TFTPDIR:             the directory of your tftp-server which is used for"
     echo "                             qemu network booting. The default is"
     echo "                             /var/lib/tftpboot."
@@ -301,6 +303,15 @@ case "$cmd" in
         tmp=$(mktemp)
         echo "target remote localhost:1234" >> $tmp
         echo "display/i \$pc" >> $tmp
+        if [ "$NRE_DBGNOVA" = "1" ]; then
+            case "$NRE_TARGET" in
+                x86_32) hyperbin=hypervisor ;;
+                x86_64) hyperbin=hypervisor-elf64 ;;
+            esac
+            addr=`$crossdir/bin/$cross-readelf -S $build/bin/apps/$hyperbin | grep .text | \
+                xargs | cut -d ' ' -f 5`
+            echo "add-symbol-file $build/bin/apps/$hyperbin 0x$addr" >> $tmp
+        fi
         # the problem is that qemu terminates if it receives SIGINT. so, if we want to
         # interrupt the execution and examine the state in gdb by pressing ^C, qemu
         # terminates. to prevent that we use a small program (ignoreint) no block SIGINT,
