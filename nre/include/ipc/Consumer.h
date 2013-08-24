@@ -30,7 +30,7 @@ class Producer;
  * Consumer-part for the producer-consumer-communication over a dataspace.
  *
  * Usage-example:
- * Consumer<char> cons(&ds);
+ * Consumer<char> cons(&ds, &sm);
  * for(char *c; (c = cons->get()) != nullptr; cons.next()) {
  *   // do something with *c
  * }
@@ -39,6 +39,7 @@ template<typename T>
 class Consumer {
     friend class Producer<T>;
 
+protected:
     struct Interface {
         volatile size_t rpos;
         volatile size_t wpos;
@@ -127,7 +128,7 @@ public:
         _if->rpos = (_if->rpos + 1) & (_max - 1);
     }
 
-private:
+protected:
     DataSpace &_ds;
     Interface *_if;
     size_t _max;

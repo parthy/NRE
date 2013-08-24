@@ -99,7 +99,7 @@ public:
         return slot != 0;
     }
 
-private:
+protected:
     DataSpace &_ds;
     typename Consumer<T>::Interface * _if;
     size_t _max;

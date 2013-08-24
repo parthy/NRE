@@ -35,6 +35,7 @@
 #include "tests/OStreamTest.h"
 #include "tests/SListTreapTest.h"
 #include "tests/Sessions.h"
+#include "tests/ProducerConsumer.h"
 
 using namespace nre;
 using namespace nre::test;
@@ -70,6 +71,7 @@ const TestCase testcases[] = {
     ostream_writef,
     ostream_strops,
     sessions,
+    prodcons,
 };
 
 int main() {
