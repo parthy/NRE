@@ -308,10 +308,11 @@ static void portal_service(void*) {
             break;
 
             case Service::OPEN_SESSION: {
-                String name;
-                uf >> name;
+                String name, args;
+                uf >> name >> args;
                 uf.finish_input();
-                VTHROW(Exception, E_NOT_FOUND, "Unable to find service '" << name << "'");
+                VTHROW(Exception, E_NOT_FOUND,
+                       "Unable to find service '" << name << "' (args=" << args << ")");
             }
             break;
 
