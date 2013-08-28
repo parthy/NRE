@@ -14,7 +14,7 @@ begin=`od -A d -t x1 $binary | grep -m 1 "$gziphead"`
 off1=`echo $begin | sed -e "s/^00*//" | cut -d ' ' -f 1`
 # count the number of spaces between the offset and the byte-sequence; this will
 # tell us how many bytes are in front of that sequence
-off2=`echo $begin | sed -e "s/^[[:xdigit:]]* \(.*\) $gziphead/\1/" | grep -o ' ' | wc -l`
+off2=`echo $begin | sed -e "s/^[[:xdigit:]]* \(.*\) $gziphead.*$/\1/" | grep -o ' ' | wc -l`
 offset=$(($off1 + $off2 + 1))
 printf "Found gzip header at offset %x\n" $offset >&2
 
