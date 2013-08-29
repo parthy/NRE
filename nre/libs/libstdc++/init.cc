@@ -15,6 +15,7 @@
  */
 
 #include <arch/Types.h>
+#include <arch/Startup.h>
 #include <Compiler.h>
 
 #define MAX_EXIT_FUNCS      32
@@ -31,7 +32,7 @@ struct GlobalObj {
 /**
  * Will be called by crt0.S
  */
-EXTERN_C void _init();
+EXTERN_C void _init(int argc, char **argv);
 /**
  * Will be called by gcc at the beginning for every global object to register the
  * destructor of the object
@@ -55,7 +56,10 @@ extern void (*CTORS_REVERSE_END)();
 extern void *EH_FRAME_BEGIN;
 void *__dso_handle;
 
-void _init() {
+void _init(int argc, char **argv) {
+    // set program name for logging
+    _startup_info.progname = argc == 0 ? "root" : argv[0];
+
     // init exception handling
     __register_frame(&EH_FRAME_BEGIN);
 

@@ -47,13 +47,13 @@ Log::Log() : BaseSerial(), _ports(PORT_BASE, 6), _sm(1), _ready(true) {
 }
 
 void Log::start() {
-    _srv = new Service("log", CPUSet(CPUSet::ALL), reinterpret_cast<Service::portal_func>(portal));
+    _srv = new LogService("log");
     _srv->start();
 }
 
-void Log::write(uint sessid, const char *line, size_t len) {
+void Log::write(const char *name, uint sessid, const char *line, size_t len) {
     ScopedLock<UserSm> guard(&_sm);
-    *this << "\e[0;" << _colors[sessid % ARRAY_SIZE(_colors)] << "m[" << sessid << "] ";
+    *this << "\e[0;" << _colors[sessid % ARRAY_SIZE(_colors)] << "m[" << fmt(name, 8, 8) << "] ";
     for(size_t i = 0; i < len; ++i) {
         char c = line[i];
         if(c != '\n')
@@ -62,14 +62,14 @@ void Log::write(uint sessid, const char *line, size_t len) {
     *this << "\e[0m\n";
 }
 
-void Log::portal(ServiceSession *sess) {
+void Log::LogService::portal(LogServiceSession *sess) {
     UtcbFrameRef uf;
     try {
         String line;
         uf >> line;
         uf.finish_input();
 
-        Log::get().write(sess->id() + 1, line.str(), line.length());
+        Log::get().write(sess->name().str(), sess->id() + 1, line.str(), line.length());
         uf << E_SUCCESS;
     }
     catch(const Exception &e) {

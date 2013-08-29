@@ -18,6 +18,7 @@
 
 #include <ipc/Service.h>
 #include <stream/Serial.h>
+#include <stream/IStringStream.h>
 #include <kobj/Ports.h>
 #include <kobj/Sm.h>
 
@@ -29,6 +30,54 @@ class BufferedLog;
  */
 class Log : public nre::BaseSerial {
     friend class BufferedLog;
+
+    class LogServiceSession : public nre::ServiceSession {
+    public:
+        explicit LogServiceSession(nre::Service *s, size_t id, portal_func func, const nre::String &name)
+            : ServiceSession(s, id, func), _name(name) {
+        }
+
+        const nre::String &name() const {
+            return _name;
+        }
+
+    private:
+        nre::String _name;
+    };
+
+    class LogService : public nre::Service {
+    public:
+        explicit LogService(const char *name)
+            : Service(name, nre::CPUSet(nre::CPUSet::ALL), reinterpret_cast<portal_func>(portal)) {
+        }
+
+        virtual nre::ServiceSession *create_session(size_t id, const nre::String &args, portal_func func) {
+            nre::IStringStream is(args);
+            nre::String name;
+            is >> name;
+            name = get_name(name);
+            if(name.length() == 0)
+                VTHROW(Exception, E_ARGS_INVALID, "Empty name");
+            return new LogServiceSession(this, id, func, name);
+        }
+
+        nre::String get_name(const nre::String &path) {
+            const char *str = path.str();
+            const char *res;
+            while((res = strchr(str, '/')) != NULL)
+                str = res + 1;
+            return str;
+        }
+
+        // note that we use a portal here instead of shared-memory because dataspace sharing doesn't
+        // work with services living in root. the problem is the translation of caps. the translation
+        // stops as soon as the destination Pd is reached. since stuff in root walks to the
+        // directly to the root-ds-manager and bypasses the childmanager, we receive the cap that is
+        // actually meant for the childmanager in the root-ds-manager. thus, we don't find the dataspace.
+        // to prevent the whole problem, we use a portal which works fine in this case, since its
+        // not performance critical anyway. so, sending a long string doesn't really hurt.
+        PORTAL static void portal(LogServiceSession *sess);
+    };
 
     enum {
         COM1    = 0x3F8,
@@ -63,7 +112,7 @@ public:
 private:
     explicit Log();
 
-    void write(uint sessid, const char *line, size_t len);
+    void write(const char *name, uint sessid, const char *line, size_t len);
 
     virtual void write(char c) {
         if(c == '\0')
@@ -75,15 +124,6 @@ private:
             ;
         _ports.out<uint8_t>(c, 0);
     }
-
-    // note that we use a portal here instead of shared-memory because dataspace sharing doesn't
-    // work with services living in root. the problem is the translation of caps. the translation
-    // stops as soon as the destination Pd is reached. since stuff in root walks to the
-    // directly to the root-ds-manager and bypasses the childmanager, we receive the cap that is
-    // actually meant for the childmanager in the root-ds-manager. thus, we don't find the dataspace.
-    // to prevent the whole problem, we use a portal which works fine in this case, since its
-    // not performance critical anyway. so, sending a long string doesn't really hurt.
-    PORTAL static void portal(nre::ServiceSession *sess);
 
     nre::Ports _ports;
     nre::UserSm _sm;
@@ -109,7 +149,7 @@ class BufferedLog : public nre::BaseSerial {
         if(_bufpos == sizeof(_buf) || c == '\n') {
             // take care that the log is already initialized
             if(Log::get()._ready)
-                Log::get().write(Log::ROOT_SESS, _buf, _bufpos);
+                Log::get().write("root", Log::ROOT_SESS, _buf, _bufpos);
             _bufpos = 0;
         }
         if(c != '\n')

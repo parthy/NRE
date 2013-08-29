@@ -47,6 +47,7 @@ struct StartupInfo {
     word_t cpu;
     word_t done;
     word_t child;
+    const char *progname;
 };
 
 }

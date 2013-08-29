@@ -63,6 +63,8 @@ _start:
     push    %rsi                            # save rsi for later usage
 
     # call function in .init-section
+    mov     8(%rsp), %rdi                   # argc
+    mov     16(%rsp), %rsi                  # argv
     call    _init
     call    _post_init
 

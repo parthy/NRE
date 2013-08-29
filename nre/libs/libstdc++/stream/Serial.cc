@@ -14,6 +14,7 @@
  * General Public License version 2 for more details.
  */
 
+#include <arch/Startup.h>
 #include <stream/Serial.h>
 #include <mem/DataSpace.h>
 #include <kobj/Ports.h>
@@ -32,7 +33,7 @@ Serial::Init::Init() {
 }
 
 Serial::Serial()
-    : BaseSerial(), _sess(new LogSession("log")), _bufpos(0), _buf() {
+    : BaseSerial(), _sess(new LogSession("log", _startup_info.progname)), _bufpos(0), _buf() {
 }
 
 Serial::~Serial() {

@@ -31,8 +31,9 @@ public:
      * Creates a new session at given service
      *
      * @param service the service name
+     * @param name the program name
      */
-    explicit LogSession(const String &service) : PtClientSession(service) {
+    explicit LogSession(const String &service, const String &name) : PtClientSession(service, name) {
     }
 
     /**
