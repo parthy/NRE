@@ -17,6 +17,7 @@
 #include <stream/OStream.h>
 #include <util/Digits.h>
 #include <util/Float.h>
+#include <util/Math.h>
 #include <cstring>
 
 namespace nre {
@@ -250,7 +251,7 @@ int OStream::printsignedprefix(llong n, uint flags) {
 int OStream::putspad(const char *s, uint pad, uint prec, uint flags) {
     int count = 0;
     if(pad > 0 && !(flags & FormatParams::PADRIGHT)) {
-        ulong width = prec != static_cast<uint>(-1) ? prec : strlen(s);
+        ulong width = prec != static_cast<uint>(-1) ? Math::min<size_t>(prec, strlen(s)) : strlen(s);
         count += printpad(pad - width, flags);
     }
     count += puts(s, prec);
