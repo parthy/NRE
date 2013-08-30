@@ -1,0 +1,17 @@
+#!tools/novaboot
+# -*-sh-*-
+QEMU_FLAGS=-m 512 -smp 4 -netdev user,id=mynet0 -device ne2k_pci,netdev=mynet0
+HYPERVISOR_PARAMS=spinner serial
+bin/apps/root
+bin/apps/acpi provides=acpi
+bin/apps/keyboard provides=keyboard
+bin/apps/reboot provides=reboot
+bin/apps/pcicfg provides=pcicfg
+bin/apps/timer provides=timer
+bin/apps/console provides=console
+bin/apps/network provides=network
+bin/apps/sysinfo
+bin/apps/vancouver mods=following lastmod m:128 ncpu:1 PC_PS2 intel82576vf
+bin/apps/guest_munich
+dist/imgs/tinycore-vmlinuz noapic console=ttyS0
+dist/imgs/tinycore-core.gz

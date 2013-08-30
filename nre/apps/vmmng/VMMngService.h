@@ -27,7 +27,7 @@
 class VMMngServiceSession : public nre::ServiceSession {
 public:
     explicit VMMngServiceSession(nre::Service *s, size_t id, portal_func func)
-        : ServiceSession(s, id, func), _vm(), _ds(), _sm(), _prod() {
+        : ServiceSession(s, id, func), _macs(), _vm(), _ds(), _sm(), _prod() {
     }
     virtual ~VMMngServiceSession() {
         delete _ds;
@@ -35,6 +35,9 @@ public:
         delete _prod;
     }
 
+    size_t request_mac() {
+        return nre::Atomic::add(&_macs, +1);
+    }
     virtual void invalidate() {
         RunningVMList::get().remove(_vm);
     }
@@ -53,6 +56,7 @@ public:
     }
 
 private:
+    uint _macs;
     RunningVM *_vm;
     nre::DataSpace *_ds;
     nre::Sm *_sm;
@@ -60,6 +64,8 @@ private:
 };
 
 class VMMngService : public nre::Service {
+    static const uint64_t BASE_MAC  = 0x525402000000;
+
     explicit VMMngService(const char *name)
         : Service(name, nre::CPUSet(nre::CPUSet::ALL), reinterpret_cast<portal_func>(portal)) {
         // we want to accept one dataspaces and pd-translations

@@ -1,6 +1,6 @@
 #!tools/novaboot
 # -*-sh-*-
-QEMU_FLAGS=-m 1024 -smp 4
+QEMU_FLAGS=-m 1024 -smp 4 -netdev user,id=mynet0 -device ne2k_pci,netdev=mynet0
 HYPERVISOR_PARAMS=spinner serial
 bin/apps/root
 bin/apps/acpi provides=acpi
@@ -9,6 +9,7 @@ bin/apps/reboot provides=reboot
 bin/apps/pcicfg provides=pcicfg
 bin/apps/timer provides=timer
 bin/apps/console provides=console
+bin/apps/network provides=network
 bin/apps/sysinfo
 bin/apps/vmmng mods=all lastmod
 bin/apps/vancouver
@@ -20,6 +21,8 @@ dist/imgs/escape.iso
 bin/apps/guest_munich
 dist/imgs/bzImage-3.1.0-32
 dist/imgs/initrd-js.lzma
+dist/imgs/tinycore-vmlinuz
+dist/imgs/tinycore-core.gz
 escape.vmconfig <<EOF
 rom://bin/apps/vancouver m:64 ncpu:1 vga_fbsize:4096 PC_PS2
 rom://dist/imgs/escape.bin
@@ -33,4 +36,10 @@ rom://bin/apps/vancouver m:128 ncpu:1 PC_PS2
 rom://bin/apps/guest_munich
 rom://dist/imgs/bzImage-3.1.0-32 clocksource=tsc console=ttyS0
 rom://dist/imgs/initrd-js.lzma
+EOF
+tinycore-linux.vmconfig <<EOF
+rom://bin/apps/vancouver m:128 ncpu:1 PC_PS2 intel82576vf
+rom://bin/apps/guest_munich
+rom://dist/imgs/tinycore-vmlinuz noapic console=ttyS0
+rom://dist/imgs/tinycore-core.gz
 EOF

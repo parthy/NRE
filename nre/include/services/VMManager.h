@@ -16,8 +16,9 @@
 
 #pragma once
 
-#include <ipc/ClientSession.h>
+#include <ipc/PtClientSession.h>
 #include <ipc/Consumer.h>
+#include <services/Network.h>
 #include <mem/DataSpace.h>
 
 namespace nre {
@@ -28,13 +29,17 @@ namespace nre {
 class VMManager {
 public:
     enum Command {
+        INIT,
+        GEN_MAC,
+    };
+    enum Event {
         RESET,
         TERMINATE,
         KILL,
     };
 
     struct Packet {
-        Command cmd;
+        Event event;
     };
 };
 
@@ -43,7 +48,7 @@ public:
  * from the vmmanager. I.e. vmmanager provides this service and vancouver uses it and listens
  * for requests.
  */
-class VMManagerSession : public ClientSession {
+class VMManagerSession : public PtClientSession {
     static const size_t DS_SIZE = ExecEnv::PAGE_SIZE;
 
 public:
@@ -53,7 +58,7 @@ public:
      * @param service the service name
      */
     explicit VMManagerSession(const String &service)
-        : ClientSession(service), _ds(DS_SIZE, DataSpaceDesc::ANONYMOUS, DataSpaceDesc::RW), _sm(0),
+        : PtClientSession(service), _ds(DS_SIZE, DataSpaceDesc::ANONYMOUS, DataSpaceDesc::RW), _sm(0),
           _consumer(_ds, _sm, true) {
         create();
     }
@@ -65,12 +70,29 @@ public:
         return _consumer;
     }
 
+    /**
+     * Generates a unique MAC-address for this VM.
+     *
+     * @return the MAC-address
+     */
+    Network::EthernetAddr generate_mac() {
+        Network::EthernetAddr res;
+        UtcbFrame uf;
+        uf << VMManager::GEN_MAC;
+        Pt pt(caps() + CPU::current().log_id());
+        pt.call(uf);
+        uf.check_reply();
+        uf >> res;
+        return res;
+    }
+
 private:
     void create() {
         UtcbFrame uf;
         uf.delegate(_ds.sel(), 0);
         uf.delegate(_sm.sel(), 1);
         uf.translate(Pd::current()->sel());
+        uf << VMManager::INIT;
         Pt pt(caps() + CPU::current().log_id());
         pt.call(uf);
         uf.check_reply();

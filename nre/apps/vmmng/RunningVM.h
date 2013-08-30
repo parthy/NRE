@@ -48,10 +48,10 @@ public:
     void set_producer(nre::Producer<nre::VMManager::Packet> *prod) {
         _prod = prod;
     }
-    void execute(nre::VMManager::Command cmd) {
+    void execute(nre::VMManager::Event event) {
         assert(_prod);
         nre::VMManager::Packet pk;
-        pk.cmd = cmd;
+        pk.event = event;
         _prod->produce(pk);
     }
 

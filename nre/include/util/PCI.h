@@ -40,7 +40,6 @@ public:
     typedef PCIConfig::value_type value_type;
     typedef uint cap_type;
 
-private:
     static const value_type BAR0            = 4;
     static const value_type MAX_BAR         = 6;
     static const value_type BAR_TYPE_MASK   = 0x6;
@@ -53,7 +52,6 @@ private:
     static const cap_type CAP_MSIX          = 0x11U;
     static const cap_type CAP_PCIE          = 0x10U;
 
-public:
     explicit PCI(PCIConfigSession &pcicfg, ACPISession *acpi = nullptr) : _pcicfg(pcicfg), _acpi(acpi) {
     }
 

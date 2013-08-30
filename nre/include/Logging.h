@@ -73,15 +73,17 @@ public:
         THREADEDDEL     = 1 << 22,
         VESA            = 1 << 23,
         VESA_DETAIL     = 1 << 24,
+        NET             = 1 << 25,
+        NET_DETAIL      = 1 << 26,
     };
 
     static UserSm sm;
     static const int level = 0 |
 #ifndef NDEBUG
         CHILD_CREATE | MEM_MAP | CPUS | PLATFORM | CHILD_KILL | ACPI |
-        REBOOT | TIMER | KEYBOARD | STORAGE | VESA
+        REBOOT | TIMER | KEYBOARD | STORAGE | VESA | NET
 #else
-        CHILD_KILL | MEM_MAP | PLATFORM | KEYBOARD | TIMER | STORAGE | VESA
+        CHILD_KILL | MEM_MAP | PLATFORM | KEYBOARD | TIMER | STORAGE | VESA | NET
 #endif
     ;
 
