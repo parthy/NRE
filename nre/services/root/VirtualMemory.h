@@ -43,7 +43,7 @@ public:
             return 0;
         if(RAM_BEGIN + phys + size > RAM_END)
             size = RAM_END - (RAM_BEGIN + phys);
-        _ramend = nre::Math::max(_ramend, RAM_BEGIN + phys + size);
+        _ramend = nre::Math::max(_ramend, static_cast<size_t>(RAM_BEGIN + phys + size));
         return RAM_BEGIN + phys;
     }
     /**

@@ -49,7 +49,7 @@ class PhysicalMemory {
      * Region manager for the physical memory
      */
     class MemRegManager : public nre::RegionManager<MemRegion> {
-        friend class MemRegion;
+        friend struct MemRegion;
 
     public:
         explicit MemRegManager() : nre::RegionManager<MemRegion>() {

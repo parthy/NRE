@@ -101,7 +101,6 @@ private:
 
     nre::Gsi *_gsi;
     nre::BDF _bdf;
-    uint _hostirq;
     nre::DataSpace *_regs_ds;
     nre::DataSpace *_regs_high_ds;
     Register *_regs;
