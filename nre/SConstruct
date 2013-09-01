@@ -54,8 +54,13 @@ else:
     else:
         hosttriple = 'i686-pc-linux-gnu'
     env.Append(
-        CXXFLAGS = ' -target ' + hosttriple,
-        CFLAGS = ' -target ' +  hosttriple,
+    	# clang causes alignment problems for SSE instructions. perhaps this is triggered by dlmalloc,
+    	# i.e. c code? at least, it seems to happen only in mmap, which is only used by dlmalloc.
+    	# clang doesn't support the function attribute force_align_arg_pointer, which would perhaps
+    	# be enough. thus, we use -mstackrealign to align the stack in all functions as a workaround
+    	# for now.
+        CXXFLAGS = ' -mstackrealign -target ' + hosttriple,
+        CFLAGS = ' -mstackrealign -target ' +  hosttriple,
         ASPPFLAGS = ' -Wa,-triple,' + hosttriple
     )
 
