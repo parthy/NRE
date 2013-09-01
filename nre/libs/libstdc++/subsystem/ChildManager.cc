@@ -223,7 +223,8 @@ Child::id_type ChildManager::load(uintptr_t addr, size_t size, const ChildConfig
             for(; i < ARRAY_SIZE(exc); ++i) {
                 c->_pts[idx + i] = new Pt(_ecs[cpu], pts + off + exc[i].no,
                                           reinterpret_cast<Pt::portal_func>(exc[i].portal),
-                                          Mtd(Mtd::GPR_BSD | Mtd::QUAL | Mtd::RIP_LEN));
+                                          Mtd(Mtd::GPR_ACDB | Mtd::GPR_BSD | Mtd::RSP | Mtd::RFLAGS |
+                                              Mtd::QUAL | Mtd::RIP_LEN));
             }
             c->_pts[idx + i++] = new Pt(_ecs[cpu], pts + off + CapSelSpace::EV_STARTUP,
                                         reinterpret_cast<Pt::portal_func>(Portals::startup),
@@ -1045,6 +1046,16 @@ void ChildManager::kill_child(Child *c, int vector, UtcbExcFrameRef &uf, ExitTyp
             LOG(CHILD_KILL, "Child '" << c->cmdline() << "': caused exception "
                                       << vector << " @ " << fmt(uf->rip, "p") << " on cpu "
                                       << CPU::current().phys_id() << "\n");
+            LOG(CHILD_KILL, "\tRegisters:\n");
+            LOG(CHILD_KILL, "\trax=" << fmt(uf->rax, "#0x", 16)
+                         << ", rbx=" << fmt(uf->rbx, "#0x", 16)
+                         << ", rcx=" << fmt(uf->rcx, "#0x", 16) << "\n");
+            LOG(CHILD_KILL, "\trdx=" << fmt(uf->rdx, "#0x", 16)
+                         << ", rsi=" << fmt(uf->rsi, "#0x", 16)
+                         << ", rdi=" << fmt(uf->rdi, "#0x", 16) << "\n");
+            LOG(CHILD_KILL, "\trsp=" << fmt(uf->rsp, "#0x", 16)
+                         << ", rbp=" << fmt(uf->rbp, "#0x", 16)
+                         << ", rfl=" << fmt(uf->rfl, "#0x", 16) << "\n");
             LOG(CHILD_KILL, c->reglist());
             LOG(CHILD_KILL, "Unable to resolve fault; killing child\n");
         }
