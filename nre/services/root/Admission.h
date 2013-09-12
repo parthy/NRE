@@ -17,6 +17,7 @@
 #pragma once
 
 #include <kobj/UserSm.h>
+#include <cap/CapRange.h>
 #include <collection/SList.h>
 #include <util/ScopedLock.h>
 #include <Exception.h>

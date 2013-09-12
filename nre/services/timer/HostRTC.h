@@ -19,6 +19,7 @@
 #pragma once
 
 #include <kobj/Ports.h>
+#include <services/Timer.h>
 #include <util/Clock.h>
 #include <util/Date.h>
 #include <Assert.h>

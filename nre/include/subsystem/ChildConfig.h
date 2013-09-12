@@ -18,6 +18,8 @@
 
 #include <arch/Types.h>
 #include <util/CPUSet.h>
+#include <String.h>
+#include <CPU.h>
 
 namespace nre {
 

@@ -18,6 +18,7 @@
 #pragma once
 
 #include <util/Math.h>
+#include <stream/OStream.h>
 
 namespace nre {
 
