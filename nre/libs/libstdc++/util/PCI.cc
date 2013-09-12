@@ -39,9 +39,9 @@ Gsi *PCI::get_gsi_msi(BDF bdf, uint nr, void *msix_table) {
         if(!msix_table) {
             value_type table_offset = conf_read(bdf, msix_offset + 1);
             uintptr_t base = bar_base(bdf, BAR0 + (table_offset & 0x7)) + (table_offset & ~0x7u);
-
-            DataSpace msixbar(ExecEnv::PAGE_SIZE, DataSpaceDesc::LOCKED,
-                              DataSpaceDesc::R, base);
+            uintptr_t start = Math::round_dn<uintptr_t>(base, ExecEnv::PAGE_SIZE);
+            uintptr_t end = Math::round_up<uintptr_t>(base + ExecEnv::PAGE_SIZE, ExecEnv::PAGE_SIZE);
+            DataSpace msixbar(end - start, DataSpaceDesc::LOCKED, DataSpaceDesc::RW, start);
             msix_table = reinterpret_cast<void*>(msixbar.virt() + (base & (ExecEnv::PAGE_SIZE - 1)));
             init_msix_table(msix_table, bdf, msix_offset, nr, gsi);
         }
