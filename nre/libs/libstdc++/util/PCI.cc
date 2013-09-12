@@ -92,7 +92,7 @@ size_t PCI::find_cap(BDF bdf, cap_type id) {
     try {
         // capabilities supported?
         if((conf_read(bdf, 1) >> 16) & 0x10) {
-            for(size_t offset = conf_read(bdf, 0xd);
+            for(uint8_t offset = conf_read(bdf, 0xd);
                 (offset != 0) && !(offset & 0x3);
                 offset = conf_read(bdf, offset >> 2) >> 8) {
                 if((conf_read(bdf, offset >> 2) & 0xFF) == id)
