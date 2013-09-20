@@ -40,7 +40,7 @@ class BitField {
         return bit / (sizeof(word_t) * 8);
     }
     static size_t bitpos(uint bit) {
-        return 1 << (bit % (sizeof(word_t) * 8));
+        return 1UL << (bit % (sizeof(word_t) * 8));
     }
 
 public:
