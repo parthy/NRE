@@ -41,12 +41,9 @@ class Sc;
  * If you create a global thread in your Pd (the default case), the GlobalThread and Sc objects
  * are managed automatically for you. That is, you call the static create() method to create a
  * GlobalThread and call start() afterwards. When the thread is finished, i.e. the thread-function
- * returns, it will destroy itself and the Sc as well. Note that this does also mean that you
- * should be careful when accessing a GlobalThread-object of a different thread. Because it will
- * be destroyed when the thread is done. So, basically, after the start() call you should leave
- * the object alone.
- * If you create a global thread for a different Pd, you have to manage the GlobalThread object
- * yourself.
+ * returns, it will destroy itself and the Sc as well.
+ * If you create a global thread for a different Pd, the GlobalThread object is destroyed as soon
+ * as the reference that you receive is destroyed.
  */
 class GlobalThread : public Thread {
     friend void ::_post_init();
@@ -73,10 +70,10 @@ public:
      * Creates a new GlobalThread that runs in a different protection domain. Thus, you have to
      * free this object.
      *
+     * @param pd the protection-domain
      * @param start the entry-point of the Thread
      * @param cpu the CPU to bind the Thread to
      * @param name the name of the thread (only used for display-purposes)
-     * @param pd the protection-domain
      * @param utcb the utcb-address
      */
     static Reference<GlobalThread> create_for(Pd *pd, startup_func start, cpu_t cpu,
@@ -101,7 +98,8 @@ public:
     }
 
     /**
-     * (Re)starts this thread with given quantum-priority-descriptor, i.e. assigns an Sc to it.
+     * Starts this thread with given quantum-priority-descriptor, i.e. assigns an Sc to it. This
+     * can only be done once!
      *
      * @param qpd the qpd to use
      */

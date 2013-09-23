@@ -61,7 +61,8 @@ public:
     }
 
     /**
-     * (Re)starts this vcpu with given quantum-priority-descriptor, i.e. assigns an Sc to it.
+     * Starts this vcpu with given quantum-priority-descriptor, i.e. assigns an Sc to it. This
+     * can only be done once!
      *
      * @param qpd the qpd to use
      */

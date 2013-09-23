@@ -33,6 +33,7 @@ class Utcb;
 /**
  * Represents a thread, i.e. an Ec that has a stack and a Utcb. It is the base class for the two
  * supported thread variants, LocalThread and GlobalThread. This class can't be used directly.
+ *
  * Note that each Thread contains a few slots for thread local storage (TLS). The index
  * Thread::TLS_PARAM is always available, e.g. to pass a parameter to a Thread. You may create
  * additional ones by Thread::create_tls().
@@ -52,7 +53,7 @@ public:
     };
 
     /**
-     * @return the current execution context
+     * @return the current thread
      */
     template<class T = Thread>
     static Reference<T> current() {
