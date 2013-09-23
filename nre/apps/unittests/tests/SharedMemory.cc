@@ -80,7 +80,7 @@ private:
     static void receiver(void *);
 
     ulong _tid;
-    GlobalThread *_ec;
+    Reference<GlobalThread> _ec;
     Consumer<Item> *_cons;
     DataSpace *_ds;
     Sm _sm;

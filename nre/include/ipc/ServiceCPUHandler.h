@@ -49,8 +49,8 @@ public:
     /**
      * @return the thread that is used for the service-portal
      */
-    LocalThread &thread() {
-        return *_session_ec;
+    Reference<LocalThread> thread() {
+        return _session_ec;
     }
 
 private:
@@ -60,8 +60,8 @@ private:
     PORTAL static void portal(void*);
 
     Service *_s;
-    LocalThread *_session_ec;
-    LocalThread *_service_ec;
+    Reference<LocalThread> _session_ec;
+    Reference<LocalThread> _service_ec;
     Pt _pt;
     UserSm _sm;
 };

@@ -55,7 +55,7 @@ private:
     nre::Sm _sm;
     nre::Producer<SwitchCommand> _prod;
     nre::Consumer<SwitchCommand> _cons;
-    nre::GlobalThread *_ec;
+    nre::Reference<nre::GlobalThread> _ec;
     ConsoleService *_srv;
     static char _buffer[];
 };

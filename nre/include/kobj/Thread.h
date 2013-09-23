@@ -19,6 +19,7 @@
 #include <arch/ExecEnv.h>
 #include <kobj/Ec.h>
 #include <collection/SList.h>
+#include <util/Reference.h>
 #include <util/Atomic.h>
 #include <Syscalls.h>
 
@@ -36,7 +37,7 @@ class Utcb;
  * Thread::TLS_PARAM is always available, e.g. to pass a parameter to a Thread. You may create
  * additional ones by Thread::create_tls().
  */
-class Thread : public Ec, public SListItem {
+class Thread : public Ec, public SListItem, public RefCounted {
     friend class RCU;
     friend class RCULock;
 
@@ -53,8 +54,9 @@ public:
     /**
      * @return the current execution context
      */
-    static Thread *current() {
-        return ExecEnv::get_current_thread();
+    template<class T = Thread>
+    static Reference<T> current() {
+        return Reference<T>(static_cast<T*>(ExecEnv::get_current_thread()));
     }
 
 protected:

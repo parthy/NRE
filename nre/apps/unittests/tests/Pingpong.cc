@@ -57,7 +57,7 @@ static void print_result(AvgProfiler &prof, uint sum) {
 }
 
 static void test_pingpong() {
-    LocalThread *ec = LocalThread::create(CPU::current().log_id());
+    Reference<LocalThread> ec = LocalThread::create(CPU::current().log_id());
 
     {
         Pt pt(ec, portal_empty);

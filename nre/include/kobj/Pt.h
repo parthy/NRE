@@ -51,7 +51,7 @@ public:
      * @param mtd the message-transfer descriptor to describe what information should the
      *  kernel pass to the portal
      */
-    explicit Pt(LocalThread *ec, capsel_t pt, portal_func func, Mtd mtd = Mtd())
+    explicit Pt(const Reference<LocalThread> &ec, capsel_t pt, portal_func func, Mtd mtd = Mtd())
         : ObjCap(pt, KEEP_SEL_BIT) {
         create(ec, pt, reinterpret_cast<uintptr_t>(func), mtd);
     }
@@ -64,7 +64,7 @@ public:
      * @param mtd the message-transfer descriptor to describe what information should the
      *  kernel pass to the portal
      */
-    explicit Pt(LocalThread *ec, portal_func func, Mtd mtd = Mtd()) : ObjCap() {
+    explicit Pt(const Reference<LocalThread> &ec, portal_func func, Mtd mtd = Mtd()) : ObjCap() {
         ScopedCapSels pt;
         create(ec, pt.get(), reinterpret_cast<uintptr_t>(func), mtd);
         sel(pt.release());
@@ -97,7 +97,7 @@ public:
     }
 
 private:
-    void create(LocalThread *ec, capsel_t pt, uintptr_t func, Mtd mtd) {
+    void create(const Reference<LocalThread> &ec, capsel_t pt, uintptr_t func, Mtd mtd) {
         Syscalls::create_pt(pt, ec->sel(), func, mtd, Pd::current()->sel());
     }
 };

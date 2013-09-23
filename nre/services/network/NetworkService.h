@@ -73,7 +73,7 @@ private:
     Channel _out;
     nre::PacketConsumer *_cons;
     nre::PacketProducer *_prod;
-    nre::GlobalThread *_gt;
+    nre::Reference<nre::GlobalThread> _gt;
     size_t _nic;
     NICDriver *_driver;
 };

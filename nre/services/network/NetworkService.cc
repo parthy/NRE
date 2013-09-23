@@ -80,7 +80,7 @@ NetworkService::NetworkService(NICList &nics, const char *name)
       _nics(nics) {
     // we want to accept two dataspaces and two sms
     for(auto it = CPU::begin(); it != CPU::end(); ++it) {
-        LocalThread *ec = get_thread(it->log_id());
+        Reference<LocalThread> ec = get_thread(it->log_id());
         UtcbFrameRef uf(ec->utcb());
         uf.accept_delegates(2);
     }

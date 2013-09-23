@@ -46,12 +46,12 @@ public:
      * @param stackaddr the stack-address (0 = create a stack)
      * @param utcb the utcb-address (0 = select it automatically)
      */
-    static LocalThread *create(cpu_t cpu, capsel_t event_base = INVALID, uintptr_t stackaddr = 0,
+    static Reference<LocalThread> create(cpu_t cpu, capsel_t event_base = INVALID, uintptr_t stackaddr = 0,
                                uintptr_t utcb = 0) {
         // note that we force a heap-allocation by this static create function, because the thread
         // will delete itself when its done. currently, that doesn't happen, but it will some time
         // in the future :)
-        return new LocalThread(cpu, event_base, stackaddr, utcb);
+        return Reference<LocalThread>(new LocalThread(cpu, event_base, stackaddr, utcb));
     }
 
 private:

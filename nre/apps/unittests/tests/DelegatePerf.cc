@@ -41,7 +41,7 @@ static void portal_test(void*) {
 
 static void test_delegate() {
     Ports ports(0x100, 1 << 2);
-    LocalThread *ec = LocalThread::create(CPU::current().log_id());
+    Reference<LocalThread> ec = LocalThread::create(CPU::current().log_id());
     Pt pt(ec, portal_test);
     AvgProfiler prof(tries);
     UtcbFrame uf;

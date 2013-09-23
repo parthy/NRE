@@ -34,7 +34,7 @@ static void dummy(void*) {
 }
 
 static void test_threads() {
-    static GlobalThread *threads[TEST_COUNT];
+    static Reference<GlobalThread> threads[TEST_COUNT];
     AvgProfiler prof(TEST_COUNT);
     for(size_t i = 0; i < TEST_COUNT; ++i) {
         prof.start();
@@ -47,5 +47,5 @@ static void test_threads() {
     WVPRINT("max: " << prof.max());
 
     for(size_t i = 0; i < TEST_COUNT; ++i)
-        delete threads[i];
+        threads[i] = Reference<GlobalThread>();
 }

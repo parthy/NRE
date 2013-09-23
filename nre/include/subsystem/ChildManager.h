@@ -315,8 +315,8 @@ private:
     mutable UserSm _slotsm;
     Sm _regsm;
     Sm _diesm;
-    LocalThread **_ecs;
-    LocalThread **_srvecs;
+    Reference<LocalThread> *_ecs;
+    Reference<LocalThread> *_srvecs;
 };
 
 }

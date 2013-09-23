@@ -218,7 +218,7 @@ int main() {
 
 #if 1
     for(CPU::iterator it = CPU::begin(); it != CPU::end(); ++it) {
-        GlobalThread *gt = GlobalThread::create(view0, it->log_id(), "test-thread");
+        Reference<GlobalThread> gt = GlobalThread::create(view0, it->log_id(), "test-thread");
         gt->set_tls<size_t>(Thread::TLS_PARAM, 1 + it->log_id());
         gt->start();
     }

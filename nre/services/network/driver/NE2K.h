@@ -100,7 +100,7 @@ private:
     NetworkService &_srv;
     nre::Ports _ports;
     nre::Gsi *_gsi;
-    nre::GlobalThread *_gt;
+    nre::Reference<nre::GlobalThread> _gt;
     uint8_t _next_packet;
     uint8_t _receive_buffer[BUFFER_SIZE];
     nre::Network::EthernetAddr _mac;

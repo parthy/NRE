@@ -127,7 +127,7 @@ public:
     }
 
     void down() {
-        Thread *cur = Thread::current();
+        Reference<Thread> cur = Thread::current();
         uint32_t counter = cur->_rcu_counter;
         // update version-counter if we're entering a critical section
         if(!(counter & 0xFFFF))
@@ -141,7 +141,7 @@ public:
     void up() {
         // ensure that everything in the critical section is written before the counter is increased
         Sync::memory_barrier();
-        Thread *cur = Thread::current();
+        Reference<Thread> cur = Thread::current();
         cur->_rcu_counter--;
     }
 

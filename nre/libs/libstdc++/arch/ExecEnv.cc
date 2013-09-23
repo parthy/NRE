@@ -37,18 +37,25 @@ void ExecEnv::exit(int code) {
 }
 
 void ExecEnv::thread_exit() {
-    Thread *t = Thread::current();
-    // tell our parent the stack and utcb address, if we've got it from him, via rsi and rdi and
-    // announce our termination via pagefault at THREAD_EXIT. he will free the resources.
-    uintptr_t stack = t->stack();
-    uintptr_t utcb = reinterpret_cast<uintptr_t>(t->utcb());
-    uint flags = t->flags();
-    ulong id = reinterpret_cast<GlobalThread*>(t)->id();
-    // we have to revoke the utcb because NOVA doesn't do so and our parent can't do it for us
-    if(~flags & Thread::HAS_OWN_UTCB)
-        CapRange(utcb >> ExecEnv::PAGE_SHIFT, 1, Crd::MEM_ALL).revoke(true);
-    // now its safe to delete our thread object
-    delete t;
+    uintptr_t stack, utcb;
+    uint flags;
+    ulong id;
+
+    {
+        Reference<GlobalThread> t = Thread::current<GlobalThread>();
+        // tell our parent the stack and utcb address, if we've got it from him, via rsi and rdi and
+        // announce our termination via pagefault at THREAD_EXIT. he will free the resources.
+        stack = t->stack();
+        utcb = reinterpret_cast<uintptr_t>(t->utcb());
+        flags = t->flags();
+        id = t->id();
+        // we have to revoke the utcb because NOVA doesn't do so and our parent can't do it for us
+        if(~flags & Thread::HAS_OWN_UTCB)
+            CapRange(utcb >> ExecEnv::PAGE_SHIFT, 1, Crd::MEM_ALL).revoke(true);
+        // now its safe to dereference our thread object
+        t.unref();
+    }
+
     asm volatile (
         "jmp	*%0;"
         :

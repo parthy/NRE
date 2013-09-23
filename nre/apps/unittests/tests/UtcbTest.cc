@@ -58,7 +58,7 @@ static void portal_test(void*) {
 
 static void test_nesting() {
     int a, b, c;
-    LocalThread *ec = LocalThread::create(CPU::current().log_id());
+    Reference<LocalThread> ec = LocalThread::create(CPU::current().log_id());
     {
         UtcbFrameRef uf(ec->utcb());
         uf.accept_delegates(1);

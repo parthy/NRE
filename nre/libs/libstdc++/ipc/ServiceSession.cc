@@ -26,8 +26,8 @@ ServiceSession::ServiceSession(Service *s, size_t id, portal_func func)
     for(uint i = 0; i < CPU::count(); ++i) {
         _pts[i] = nullptr;
         if(s->available().is_set(i)) {
-            LocalThread *ec = s->get_thread(i);
-            assert(ec != nullptr);
+            Reference<LocalThread> ec = s->get_thread(i);
+            assert(ec.valid());
             _pts[i] = new Pt(ec, _caps + i, func);
             _pts[i]->set_id(reinterpret_cast<word_t>(this));
         }

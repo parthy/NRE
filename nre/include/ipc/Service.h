@@ -233,8 +233,8 @@ public:
      * @param cpu the cpu
      * @return the local thread for the given CPU to handle the provided portal
      */
-    LocalThread *get_thread(cpu_t cpu) const {
-        return _insts[cpu] != nullptr ? &_insts[cpu]->thread() : nullptr;
+    Reference<LocalThread> get_thread(cpu_t cpu) const {
+        return _insts[cpu] != nullptr ? _insts[cpu]->thread() : Reference<LocalThread>();
     }
 
 protected:

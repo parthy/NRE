@@ -36,6 +36,7 @@
 #include "tests/SListTreapTest.h"
 #include "tests/Sessions.h"
 #include "tests/ProducerConsumer.h"
+#include "tests/ThreadRefs.h"
 
 using namespace nre;
 using namespace nre::test;
@@ -72,6 +73,7 @@ const TestCase testcases[] = {
     ostream_strops,
     sessions,
     prodcons,
+    threadrefs,
 };
 
 int main() {

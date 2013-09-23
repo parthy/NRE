@@ -76,7 +76,7 @@ private:
         HostTimerDevice::Timer *timer;
         nre::TimeoutList<MAX_CLIENTS, ClientData> abstimeouts;
 
-        nre::LocalThread *ec;
+        nre::Reference<nre::LocalThread> ec;
         nre::Pt worker_pt;
         nre::Sm xcpu_sm;
         timevalue_t last_to;

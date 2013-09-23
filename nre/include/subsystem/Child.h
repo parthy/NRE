@@ -279,7 +279,7 @@ private:
     String _cmdline;
     bool _started;
     Pd *_pd;
-    GlobalThread *_ec;
+    Reference<GlobalThread> _ec;
     Pt **_pts;
     size_t _ptcount;
     ChildMemory _regs;

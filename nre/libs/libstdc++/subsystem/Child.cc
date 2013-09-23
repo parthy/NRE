@@ -25,7 +25,6 @@ namespace nre {
 
 Child::~Child() {
     delete[] _pts;
-    delete _ec;
     delete _pd;
     release_gsis();
     release_ports();

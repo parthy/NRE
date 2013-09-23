@@ -57,7 +57,7 @@ public:
         os << "cleanup-" << name;
         for(auto it = CPU::begin(); it != CPU::end(); ++it) {
             _sms[it->log_id()] = new Sm(0);
-            GlobalThread *gt = GlobalThread::create(
+            Reference<GlobalThread> gt = GlobalThread::create(
                     it->log_id() == 0 ? cleanup_coordinator : cleanup_helper, it->log_id(), os.str());
             _tids[it->log_id()] = gt->id();
             gt->set_tls<ThreadedDeleter<T>*>(Thread::TLS_PARAM, this);

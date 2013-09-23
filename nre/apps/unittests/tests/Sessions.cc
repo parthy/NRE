@@ -91,7 +91,7 @@ static void client_thread(void*) {
 static int sessions_client(int, char *[]) {
     ulong ids[CPU::count()];
     for(CPU::iterator cpu = CPU::begin(); cpu != CPU::end(); ++cpu) {
-        GlobalThread *gt = GlobalThread::create(client_thread, cpu->log_id(), "mythread");
+        Reference<GlobalThread> gt = GlobalThread::create(client_thread, cpu->log_id(), "mythread");
         ids[cpu->log_id()] = gt->id();
         gt->start();
     }

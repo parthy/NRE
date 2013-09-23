@@ -31,8 +31,8 @@ namespace nre {
 ChildManager::ChildManager()
     : _next_id(0), _child_count(0), _childs(), _deleter(this), _dsm(), _registry(), _sm(),
       _switchsm(), _slotsm(), _regsm(0), _diesm(0), _ecs(), _srvecs() {
-    _ecs = new LocalThread *[CPU::count()];
-    _srvecs = new LocalThread *[CPU::count()];
+    _ecs = new Reference<LocalThread>[CPU::count()];
+    _srvecs = new Reference<LocalThread>[CPU::count()];
     for(auto it = CPU::begin(); it != CPU::end(); ++it) {
         _ecs[it->log_id()] = LocalThread::create(it->log_id());
         _ecs[it->log_id()]->set_tls(Thread::TLS_PARAM, this);
@@ -56,10 +56,6 @@ ChildManager::~ChildManager() {
         while((child = get_first()).valid())
             destroy_child(&*child);
         _deleter.wait();
-    }
-    for(size_t i = 0; i < CPU::count(); ++i) {
-        delete _ecs[i];
-        delete _srvecs[i];
     }
     delete[] _ecs;
     delete[] _srvecs;

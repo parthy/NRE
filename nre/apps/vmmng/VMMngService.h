@@ -70,7 +70,7 @@ class VMMngService : public nre::Service {
         : Service(name, nre::CPUSet(nre::CPUSet::ALL), reinterpret_cast<portal_func>(portal)) {
         // we want to accept one dataspaces and pd-translations
         for(auto it = nre::CPU::begin(); it != nre::CPU::end(); ++it) {
-            nre::LocalThread *ec = get_thread(it->log_id());
+            nre::Reference<nre::LocalThread> ec = get_thread(it->log_id());
             nre::UtcbFrameRef uf(ec->utcb());
             uf.accept_translates();
             uf.accept_delegates(1);

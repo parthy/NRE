@@ -25,6 +25,9 @@ public:
     explicit RefCounted() : _refs(1) {
     }
 
+    ulong refcount() const {
+        return _refs;
+    }
     void add_ref() const {
         Atomic::add(&_refs, +1);
     }
@@ -49,6 +52,7 @@ public:
     }
     Reference<T> &operator=(const Reference<T> &r) {
         if(&r != this) {
+            detach();
             _obj = r._obj;
             attach();
         }
@@ -67,8 +71,19 @@ public:
     T *operator->() {
         return _obj;
     }
+    const T *operator->() const {
+        return _obj;
+    }
     T &operator*() {
         return *_obj;
+    }
+    const T &operator*() const {
+        return *_obj;
+    }
+
+    void unref() {
+        if(_obj && _obj->rem_ref())
+            delete _obj;
     }
 
 private:
@@ -77,8 +92,7 @@ private:
             _obj->add_ref();
     }
     void detach() {
-        if(_obj && _obj->rem_ref())
-            delete _obj;
+        unref();
         _obj = nullptr;
     }
 

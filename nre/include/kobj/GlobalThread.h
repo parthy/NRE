@@ -70,10 +70,10 @@ public:
      * @param name the name of the thread
      * @param utcb the utcb-address (0 = select it automatically)
      */
-    static GlobalThread *create(startup_func start, cpu_t cpu, const String &name, uintptr_t utcb = 0) {
+    static Reference<GlobalThread> create(startup_func start, cpu_t cpu, const String &name, uintptr_t utcb = 0) {
         // note that we force a heap-allocation by this static create function, because the thread
         // will delete itself when its done.
-        return new GlobalThread(start, cpu, name, Pd::current(), utcb);
+        return Reference<GlobalThread>(new GlobalThread(start, cpu, name, Pd::current(), utcb));
     }
 
     /**
@@ -86,8 +86,8 @@ public:
      * @param pd the protection-domain
      * @param utcb the utcb-address
      */
-    static GlobalThread *create_for(Pd *pd, startup_func start, cpu_t cpu, const String &name, uintptr_t utcb) {
-        return new GlobalThread(start, cpu, name, pd, utcb);
+    static Reference<GlobalThread> create_for(Pd *pd, startup_func start, cpu_t cpu, const String &name, uintptr_t utcb) {
+        return Reference<GlobalThread>(new GlobalThread(start, cpu, name, pd, utcb));
     }
 
     virtual ~GlobalThread();

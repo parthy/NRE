@@ -31,11 +31,11 @@ size_t Thread::_tls_idx = 1;
 Thread::Thread(Pd *pd, Syscalls::ECType type, ExecEnv::startup_func start, uintptr_t ret, cpu_t cpu,
                capsel_t evb, uintptr_t stack, uintptr_t uaddr)
     : Ec(cpu, evb, create(this, pd, type, cpu, evb, start, ret, uaddr, stack, _flags)),
-      SListItem(), _rcu_counter(0), _utcb_addr(uaddr), _stack_addr(stack), _tls() {
+      SListItem(), RefCounted(), _rcu_counter(0), _utcb_addr(uaddr), _stack_addr(stack), _tls() {
 }
 
 Thread::Thread(cpu_t cpu, capsel_t evb, capsel_t cap, uintptr_t stack, uintptr_t uaddr)
-    : Ec(cpu, evb, cap), SListItem(), _rcu_counter(0), _utcb_addr(uaddr), _stack_addr(stack),
+    : Ec(cpu, evb, cap), SListItem(), RefCounted(), _rcu_counter(0), _utcb_addr(uaddr), _stack_addr(stack),
       _flags(), _tls() {
 }
 

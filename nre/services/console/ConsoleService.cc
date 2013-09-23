@@ -29,7 +29,7 @@ ConsoleService::ConsoleService(const char *name, uint modifier)
       _modifier(modifier) {
     // we want to accept two dataspaces
     for(auto it = CPU::begin(); it != CPU::end(); ++it) {
-        LocalThread *t = get_thread(it->log_id());
+        Reference<LocalThread> t = get_thread(it->log_id());
         UtcbFrameRef uf(t->utcb());
         uf.accept_delegates(2);
     }

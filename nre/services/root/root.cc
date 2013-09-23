@@ -74,7 +74,7 @@ CPU0Init::CPU0Init() {
     // use the local stack here since we can't map dataspaces yet
     // note that we need a different thread here because otherwise we couldn't allocate any memory
     // on the heap in all portals that use the same thread (we would call us ourself).
-    LocalThread *dsec = LocalThread::create(cpu.log_id(), ObjCap::INVALID,
+    Reference<LocalThread> dsec = LocalThread::create(cpu.log_id(), ObjCap::INVALID,
                                             reinterpret_cast<uintptr_t>(dsstack), ds_utcb);
     cpu.ds_pt(new Pt(dsec, PhysicalMemory::portal_dataspace));
     // accept translated caps
@@ -82,7 +82,7 @@ CPU0Init::CPU0Init() {
     dsuf.accept_translates();
 
     uintptr_t ec_utcb = VirtualMemory::alloc(Utcb::SIZE);
-    LocalThread *ec = LocalThread::create(cpu.log_id(), ObjCap::INVALID,
+    Reference<LocalThread> ec = LocalThread::create(cpu.log_id(), ObjCap::INVALID,
                                           reinterpret_cast<uintptr_t>(ptstack), ec_utcb);
     cpu.gsi_pt(new Pt(ec, Hypervisor::portal_gsi));
     cpu.io_pt(new Pt(ec, Hypervisor::portal_io));
@@ -97,7 +97,7 @@ CPU0Init::CPU0Init() {
 
     // register portal for the log service
     uintptr_t regec_utcb = VirtualMemory::alloc(Utcb::SIZE);
-    LocalThread *regec = LocalThread::create(cpu.log_id(), ObjCap::INVALID,
+    Reference<LocalThread> regec = LocalThread::create(cpu.log_id(), ObjCap::INVALID,
                                              reinterpret_cast<uintptr_t>(regptstack), regec_utcb);
     cpu.srv_pt(new Pt(regec, portal_service));
     UtcbFrameRef reguf(regec->utcb());
@@ -191,13 +191,13 @@ int main() {
     for(auto it = CPU::begin(); it != CPU::end(); ++it) {
         if(it->log_id() != CPU::current().log_id()) {
             // again, different thread for ds portal
-            LocalThread *dsec = LocalThread::create(it->log_id());
+            Reference<LocalThread> dsec = LocalThread::create(it->log_id());
             it->ds_pt(new Pt(dsec, PhysicalMemory::portal_dataspace));
             // accept translated caps
             UtcbFrameRef dsuf(dsec->utcb());
             dsuf.accept_translates();
 
-            LocalThread *ec = LocalThread::create(it->log_id());
+            Reference<LocalThread> ec = LocalThread::create(it->log_id());
             it->gsi_pt(new Pt(ec, Hypervisor::portal_gsi));
             it->io_pt(new Pt(ec, Hypervisor::portal_io));
             it->sc_pt(new Pt(ec, Admission::portal_sc));
@@ -210,7 +210,7 @@ int main() {
                    Mtd(Mtd::RSP | Mtd::GPR_BSD | Mtd::RIP_LEN | Mtd::QUAL));
 
             // register portal for the log service
-            LocalThread *regec = LocalThread::create(it->log_id());
+            Reference<LocalThread> regec = LocalThread::create(it->log_id());
             it->srv_pt(new Pt(regec, portal_service));
             UtcbFrameRef reguf(regec->utcb());
             reguf.accept_translates();
