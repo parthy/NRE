@@ -78,7 +78,7 @@ public:
 
     /**
      * Creates a new GlobalThread that runs in a different protection domain. Thus, you have to
-     * create and free this object.
+     * free this object.
      *
      * @param start the entry-point of the Thread
      * @param cpu the CPU to bind the Thread to
@@ -86,11 +86,10 @@ public:
      * @param pd the protection-domain
      * @param utcb the utcb-address
      */
-    explicit GlobalThread(startup_func start, cpu_t cpu, const String &name, Pd *pd, uintptr_t utcb)
-        : Thread(pd, Syscalls::EC_GLOBAL, start, reinterpret_cast<uintptr_t>(ec_landing_spot), cpu,
-                 Hip::get().service_caps() * cpu, 0, utcb), _id(Atomic::add(&_next_id, +1)), _sc(),
-                 _name(name) {
+    static GlobalThread *create_for(Pd *pd, startup_func start, cpu_t cpu, const String &name, uintptr_t utcb) {
+        return new GlobalThread(start, cpu, name, pd, utcb);
     }
+
     virtual ~GlobalThread();
 
     /**
@@ -122,6 +121,11 @@ public:
 
 private:
     explicit GlobalThread(uintptr_t uaddr, capsel_t gt, capsel_t sc, cpu_t cpu, Pd *pd, uintptr_t stack);
+    explicit GlobalThread(startup_func start, cpu_t cpu, const String &name, Pd *pd, uintptr_t utcb)
+        : Thread(pd, Syscalls::EC_GLOBAL, start, reinterpret_cast<uintptr_t>(ec_landing_spot), cpu,
+                 Hip::get().service_caps() * cpu, 0, utcb), _id(Atomic::add(&_next_id, +1)), _sc(),
+                 _name(name) {
+    }
 
     ulong _id;
     Sc *_sc;

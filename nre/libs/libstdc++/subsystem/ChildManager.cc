@@ -289,8 +289,9 @@ Child::id_type ChildManager::load(uintptr_t addr, size_t size, const ChildConfig
         c->_utcb = c->reglist().find_free(Utcb::SIZE);
         // just reserve the virtual memory with no permissions; it will not be requested
         c->reglist().add(DataSpaceDesc(Utcb::SIZE, DataSpaceDesc::VIRTUAL, 0), c->_utcb, 0);
-        c->_ec = new GlobalThread(reinterpret_cast<GlobalThread::startup_func>(elf->e_entry),
-                                  config.cpu(), c->cmdline(), c->_pd, c->_utcb);
+        c->_ec = GlobalThread::create_for(c->_pd,
+            reinterpret_cast<GlobalThread::startup_func>(elf->e_entry), config.cpu(),
+            c->cmdline(), c->_utcb);
 
         // he needs a stack
         uint align = Math::next_pow2_shift(ExecEnv::STACK_SIZE);
