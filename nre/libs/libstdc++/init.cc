@@ -63,12 +63,12 @@ void _init(int argc, char **argv) {
     // init exception handling
     __register_frame(&EH_FRAME_BEGIN);
 
-    // call constructors
-    for(void (**func)() = &CTORS_END; func != &CTORS_BEGIN; )
-        (*--func)();
     // call reverse constructors (for clang)
     for(void (**func)() = &CTORS_REVERSE_BEGIN; func != &CTORS_REVERSE_END; func++)
         (*func)();
+    // call constructors
+    for(void (**func)() = &CTORS_END; func != &CTORS_BEGIN; )
+        (*--func)();
 }
 
 int __cxa_atexit(void (*f)(void *), void *p, void *d) {
