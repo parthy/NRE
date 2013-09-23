@@ -81,14 +81,14 @@ void Child::alloc_thread(uintptr_t *stack_addr, uintptr_t *utcb_addr) {
     }
 }
 
-capsel_t Child::create_thread(capsel_t ec, const String &name, ulong id, cpu_t cpu, Qpd &qpd) {
+capsel_t Child::create_thread(capsel_t ec, const String &name, void *ptr, cpu_t cpu, Qpd &qpd) {
     // TODO later one could add policy here and adjust the qpd accordingly
     capsel_t sc;
     {
         UtcbFrame puf;
         puf.accept_delegates(0);
         // we don't want to join this thread
-        puf << Sc::CREATE << name << 0 << cpu << qpd;
+        puf << Sc::CREATE << name << nullptr << cpu << qpd;
         puf.delegate(ec);
         CPU::current().sc_pt().call(puf);
         puf.check_reply();
@@ -97,15 +97,15 @@ capsel_t Child::create_thread(capsel_t ec, const String &name, ulong id, cpu_t c
     }
 
     ScopedLock<UserSm> guard(&_sm);
-    _scs.append(new SchedEntity(id, name, cpu, sc));
-    LOG(ADMISSION, "Child '" << cmdline() << "' created sc " << id << ":"
+    _scs.append(new SchedEntity(ptr, name, cpu, sc));
+    LOG(ADMISSION, "Child '" << cmdline() << "' created sc " << ptr << ":"
                              << name << " on cpu " << cpu << " (" << sc << ")\n");
     return sc;
 }
 
-Child::SchedEntity *Child::get_thread_by_id(ulong id) {
+Child::SchedEntity *Child::get_thread_by_id(void *ptr) {
     for(auto it = _scs.begin(); it != _scs.end(); ++it) {
-        if(it->id() == id)
+        if(it->ptr() == ptr)
             return &*it;
     }
     return nullptr;
@@ -119,21 +119,21 @@ Child::SchedEntity *Child::get_thread_by_cap(capsel_t cap) {
     return nullptr;
 }
 
-void Child::join_thread(ulong id, capsel_t sm) {
+void Child::join_thread(void *ptr, capsel_t sm) {
     // ensure that the thread can't terminate between join() and creation of the JoinItem
     ScopedLock<UserSm> guard(&_sm);
     // if we've found it, enqueue the sm, so that we can up it on thread-termination
     // id == 0 means, wait until all other threads are dead (the main thread is not included here)
-    if((id > 0 && get_thread_by_id(id)) || (id == 0 && _scs.length() > 0))
-        _joins.append(new JoinItem(id, sm));
+    if((ptr != nullptr && get_thread_by_id(ptr)) || (ptr == nullptr && _scs.length() > 0))
+        _joins.append(new JoinItem(ptr, sm));
     // otherwise the thread is already dead, so just up the Sm to let the caller continue.
     else
         Sm(sm, true).up();
 }
 
-void Child::term_thread(ulong id, uintptr_t stack, uintptr_t utcb) {
+void Child::term_thread(void *ptr, uintptr_t stack, uintptr_t utcb) {
     ScopedLock<UserSm> guard(&_sm);
-    SchedEntity *se = get_thread_by_id(id);
+    SchedEntity *se = get_thread_by_id(ptr);
     if(!se)
         return;
 
@@ -149,7 +149,7 @@ void Child::term_thread(ulong id, uintptr_t stack, uintptr_t utcb) {
     for(auto it = _joins.begin(); it != _joins.end(); ) {
         auto old = it++;
         // waits for this thread or until all others are dead?
-        if(old->id() == id || (old->id() == 0 && _scs.length() == 1)) {
+        if(old->ptr() == ptr || (old->ptr() == nullptr && _scs.length() == 1)) {
             old->sm().up();
             _joins.remove(&*old);
             delete &*old;
@@ -174,7 +174,7 @@ void Child::destroy_thread(SchedEntity *se) {
         puf.check_reply();
     }
 
-    LOG(ADMISSION, "Child '" << cmdline() << "' destroyed sc " << se->id() << ":" << se->name() << "\n");
+    LOG(ADMISSION, "Child '" << cmdline() << "' destroyed sc " << se->ptr() << ":" << se->name() << "\n");
     _scs.remove(se);
     delete se;
 }

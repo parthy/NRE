@@ -53,7 +53,7 @@ static void test_threadrefs() {
         WVPASSEQ(gtcpy->refcount(), 2UL);
 
         sm.up();
-        GlobalThread::join(gtcpy->id());
+        gtcpy->join();
         WVPASSEQ(gtcpy->refcount(), 1UL);
     }
 

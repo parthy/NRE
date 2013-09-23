@@ -89,9 +89,9 @@ private:
      * Starts the Sc, i.e. the attached GlobalThread.
      *
      * @param name the name
-     * @param id the thread id (0 = not joinable)
+     * @param ptr the thread-object (nullptr = not joinable)
      */
-    void start(const String &name, ulong id);
+    void start(const String &name, void *ptr);
 
     Sc(const Sc&);
     Sc& operator=(const Sc&);

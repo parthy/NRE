@@ -224,7 +224,7 @@ int main() {
     }
 
     // wait until all are finished
-    GlobalThread::join(0);
+    GlobalThread::join_all();
 #endif
 
     /*

@@ -60,15 +60,15 @@ class Child : public SListTreapNode<size_t>, public RefCounted {
          * @param cpu the cpu its running on
          * @param cap the Sc capability
          */
-        explicit SchedEntity(ulong id, const String &name, cpu_t cpu, capsel_t cap)
-            : SListItem(), _id(id), _name(name), _cpu(cpu), _cap(cap) {
+        explicit SchedEntity(void *ptr, const String &name, cpu_t cpu, capsel_t cap)
+            : SListItem(), _ptr(ptr), _name(name), _cpu(cpu), _cap(cap) {
         }
 
         /**
          * @return the id of the thread (unique within one child)
          */
-        ulong id() const {
-            return _id;
+        void *ptr() const {
+            return _ptr;
         }
         /**
          * @return the name of the thread
@@ -90,7 +90,7 @@ class Child : public SListTreapNode<size_t>, public RefCounted {
         }
 
     private:
-        ulong _id;
+        void *_ptr;
         String _name;
         cpu_t _cpu;
         capsel_t _cap;
@@ -104,17 +104,17 @@ class Child : public SListTreapNode<size_t>, public RefCounted {
         /**
          * Constructor
          *
-         * @param id the id of the thread
+         * @param ptr the id of the thread
          * @param sm the sm-capability to up as soon as the thread died
          */
-        explicit JoinItem(ulong id, capsel_t sm) : SListItem(), _id(id), _sm(sm, true) {
+        explicit JoinItem(void *ptr, capsel_t sm) : SListItem(), _ptr(ptr), _sm(sm, true) {
         }
 
         /**
          * @return the id of the thread (unique within one child)
          */
-        ulong id() const {
-            return _id;
+        void *ptr() const {
+            return _ptr;
         }
         /**
          * @return the semaphore
@@ -124,7 +124,7 @@ class Child : public SListTreapNode<size_t>, public RefCounted {
         }
 
     private:
-        ulong _id;
+        void *_ptr;
         Sm _sm;
     };
 
@@ -257,11 +257,11 @@ private:
     }
 
     void alloc_thread(uintptr_t *stack_addr, uintptr_t *utcb_addr);
-    capsel_t create_thread(capsel_t ec, const String &name, ulong id, cpu_t cpu, Qpd &qpd);
-    SchedEntity *get_thread_by_id(ulong id);
+    capsel_t create_thread(capsel_t ec, const String &name, void *ptr, cpu_t cpu, Qpd &qpd);
+    SchedEntity *get_thread_by_id(void *ptr);
     SchedEntity *get_thread_by_cap(capsel_t cap);
-    void join_thread(ulong id, capsel_t sm);
-    void term_thread(ulong id, uintptr_t stack, uintptr_t utcb);
+    void join_thread(void *ptr, capsel_t sm);
+    void term_thread(void *ptr, uintptr_t stack, uintptr_t utcb);
     void remove_thread(capsel_t cap);
     void destroy_thread(SchedEntity *se);
 

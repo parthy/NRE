@@ -584,15 +584,15 @@ void ChildManager::Portals::sc(Child *c) {
             break;
 
             case Sc::CREATE: {
-                ulong id;
+                void *ptr;
                 String name;
                 Qpd qpd;
                 cpu_t cpu;
                 capsel_t ec = uf.get_delegated(0).offset();
-                uf >> name >> id >> cpu >> qpd;
+                uf >> name >> ptr >> cpu >> qpd;
                 uf.finish_input();
 
-                capsel_t sc = c->create_thread(ec, name, id, cpu, qpd);
+                capsel_t sc = c->create_thread(ec, name, ptr, cpu, qpd);
 
                 uf.accept_delegates();
                 uf.delegate(sc);
@@ -601,12 +601,12 @@ void ChildManager::Portals::sc(Child *c) {
             break;
 
             case Sc::JOIN: {
-                ulong id;
+                void *ptr;
                 capsel_t sm = uf.get_delegated(0).offset();
-                uf >> id;
+                uf >> ptr;
                 uf.finish_input();
 
-                c->join_thread(id, sm);
+                c->join_thread(ptr, sm);
 
                 uf.accept_delegates();
                 uf << E_SUCCESS;
@@ -1058,7 +1058,7 @@ void ChildManager::kill_child(Child *c, int vector, UtcbExcFrameRef &uf, ExitTyp
         }
         // if its a thread exit, free stack and utcb
         else if(type == THREAD_EXIT)
-            c->term_thread(uf->rsi & (ExecEnv::PAGE_SIZE - 1), uf->rsi, uf->rdi);
+            c->term_thread(reinterpret_cast<void*>(uf->rdx), uf->rsi, uf->rdi);
 
         if(exitcode != 0) {
             ExecEnv::collect_backtrace(c->_ec->stack(), uf->rbp, addrs, 32);

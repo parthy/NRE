@@ -89,14 +89,14 @@ static void client_thread(void*) {
 }
 
 static int sessions_client(int, char *[]) {
-    ulong ids[CPU::count()];
+    Reference<GlobalThread> *gts = new Reference<GlobalThread>[CPU::count()];
     for(CPU::iterator cpu = CPU::begin(); cpu != CPU::end(); ++cpu) {
-        Reference<GlobalThread> gt = GlobalThread::create(client_thread, cpu->log_id(), "mythread");
-        ids[cpu->log_id()] = gt->id();
-        gt->start();
+        gts[cpu->log_id()] = GlobalThread::create(client_thread, cpu->log_id(), "mythread");
+        gts[cpu->log_id()]->start();
     }
-    for(size_t i = 0; i < ARRAY_SIZE(ids); ++i)
-        GlobalThread::join(ids[i]);
+    for(size_t i = 0; i < CPU::count(); ++i)
+        gts[i]->join();
+    delete[] gts;
     return 0;
 }
 

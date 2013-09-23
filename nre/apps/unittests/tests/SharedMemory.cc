@@ -52,13 +52,12 @@ public:
           _ec(GlobalThread::create(receiver, CPU::current().log_id(), "shm-receiver")),
           _cons(), _ds(), _sm(0) {
         _ec->set_tls<size_t>(Thread::TLS_PARAM, id);
-        _tid = _ec->id();
     }
     virtual ~ShmSession() {
         if(_cons)
             _cons->stop();
         // don't delete the resources before the thread is dead
-        GlobalThread::join(_tid);
+        _ec->join();
         delete _ds;
         delete _cons;
     }
@@ -79,7 +78,6 @@ public:
 private:
     static void receiver(void *);
 
-    ulong _tid;
     Reference<GlobalThread> _ec;
     Consumer<Item> *_cons;
     DataSpace *_ds;

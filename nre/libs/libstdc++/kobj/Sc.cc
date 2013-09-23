@@ -22,11 +22,11 @@
 
 namespace nre {
 
-void Sc::start(const String &name, ulong id) {
+void Sc::start(const String &name, void *ptr) {
     UtcbFrame uf;
     ScopedCapSels sc;
     uf.delegation_window(Crd(sc.get(), 0, Crd::OBJ_ALL));
-    uf << Sc::CREATE << name << id << _ec->cpu() << _qpd;
+    uf << Sc::CREATE << name << ptr << _ec->cpu() << _qpd;
     uf.delegate(_ec->sel());
     sel(sc.get());
     CPU::current().sc_pt().call(uf);

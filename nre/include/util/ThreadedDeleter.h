@@ -51,15 +51,15 @@ public:
      * @param name the prefix for the thread-names
      */
     explicit ThreadedDeleter(const char *name)
-            : _sms(new Sm*[CPU::count()]), _tids(new ulong[CPU::count()]), _cpu_done(0), _done(0),
-              _sm(), _objs(), _run(true) {
+            : _sms(new Sm*[CPU::count()]), _gts(new Reference<GlobalThread>[CPU::count()]),
+              _cpu_done(0), _done(0), _sm(), _objs(), _run(true) {
         OStringStream os;
         os << "cleanup-" << name;
         for(auto it = CPU::begin(); it != CPU::end(); ++it) {
             _sms[it->log_id()] = new Sm(0);
             Reference<GlobalThread> gt = GlobalThread::create(
                     it->log_id() == 0 ? cleanup_coordinator : cleanup_helper, it->log_id(), os.str());
-            _tids[it->log_id()] = gt->id();
+            _gts[it->log_id()] = gt;
             gt->set_tls<ThreadedDeleter<T>*>(Thread::TLS_PARAM, this);
             gt->start();
         }
@@ -72,13 +72,13 @@ public:
         _run = false;
         for(auto it = CPU::begin(); it != CPU::end(); ++it) {
             _sms[it->log_id()]->up();
-            GlobalThread::join(_tids[it->log_id()]);
+            _gts[it->log_id()]->join();
         }
         // now release the resources
         for(size_t i = 0; i < CPU::count(); ++i)
             delete _sms[i];
         delete[] _sms;
-        delete[] _tids;
+        delete[] _gts;
     }
 
     /**
@@ -207,7 +207,7 @@ private:
     }
 
     Sm **_sms;
-    ulong *_tids;
+    Reference<GlobalThread> *_gts;
     Sm _cpu_done;
     Sm _done;
     UserSm _sm;

@@ -55,14 +55,6 @@ public:
     typedef ExecEnv::startup_func startup_func;
 
     /**
-     * Blocks until the thread with id <id> terminated. If <id> is 0, it blocks until all other
-     * threads are terminated. Note that this does only work from the main-thread.
-     *
-     * @param id the id of the thread
-     */
-    static void join(ulong id);
-
-    /**
      * Creates a new GlobalThread in the current Pd that starts at <start> on CPU <cpu>.
      *
      * @param start the entry-point of the Thread
@@ -70,7 +62,8 @@ public:
      * @param name the name of the thread
      * @param utcb the utcb-address (0 = select it automatically)
      */
-    static Reference<GlobalThread> create(startup_func start, cpu_t cpu, const String &name, uintptr_t utcb = 0) {
+    static Reference<GlobalThread> create(startup_func start, cpu_t cpu, const String &name,
+                                          uintptr_t utcb = 0) {
         // note that we force a heap-allocation by this static create function, because the thread
         // will delete itself when its done.
         return Reference<GlobalThread>(new GlobalThread(start, cpu, name, Pd::current(), utcb));
@@ -86,18 +79,13 @@ public:
      * @param pd the protection-domain
      * @param utcb the utcb-address
      */
-    static Reference<GlobalThread> create_for(Pd *pd, startup_func start, cpu_t cpu, const String &name, uintptr_t utcb) {
+    static Reference<GlobalThread> create_for(Pd *pd, startup_func start, cpu_t cpu,
+                                              const String &name, uintptr_t utcb) {
         return Reference<GlobalThread>(new GlobalThread(start, cpu, name, pd, utcb));
     }
 
     virtual ~GlobalThread();
 
-    /**
-     * @return the id of the thread (only available
-     */
-    capsel_t id() const {
-        return _id;
-    }
     /**
      * @return the scheduling context this thread is bound to (nullptr if start() hasn't been
      *  called yet)
@@ -119,18 +107,30 @@ public:
      */
     void start(Qpd qpd = Qpd());
 
+    /**
+     * Blocks until this thread terminated.
+     */
+    void join() {
+        dojoin(this);
+    }
+
+    /**
+     * Blocks until all other threads terminated. Note that this does only work from the main-thread.
+     */
+    static void join_all() {
+        dojoin(nullptr);
+    }
+
 private:
     explicit GlobalThread(uintptr_t uaddr, capsel_t gt, capsel_t sc, cpu_t cpu, Pd *pd, uintptr_t stack);
     explicit GlobalThread(startup_func start, cpu_t cpu, const String &name, Pd *pd, uintptr_t utcb)
         : Thread(pd, Syscalls::EC_GLOBAL, start, reinterpret_cast<uintptr_t>(ec_landing_spot), cpu,
-                 Hip::get().service_caps() * cpu, 0, utcb), _id(Atomic::add(&_next_id, +1)), _sc(),
-                 _name(name) {
+                 Hip::get().service_caps() * cpu, 0, utcb), _sc(), _name(name) {
     }
+    static void dojoin(GlobalThread *gt);
 
-    ulong _id;
     Sc *_sc;
     const String _name;
-    static ulong _next_id;
     static GlobalThread _cur;
 };
 
