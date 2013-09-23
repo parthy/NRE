@@ -264,6 +264,7 @@ private:
     void term_thread(void *ptr, uintptr_t stack, uintptr_t utcb);
     void remove_thread(capsel_t cap);
     void destroy_thread(SchedEntity *se);
+    void destroy_sc(capsel_t cap);
 
     void release_gsis();
     void release_ports();

@@ -26,6 +26,7 @@ namespace nre {
 Child::~Child() {
     delete[] _pts;
     delete _pd;
+    destroy_sc(_ec->sc()->sel());
     release_gsis();
     release_ports();
     release_scs();
@@ -165,15 +166,16 @@ void Child::remove_thread(capsel_t cap) {
         destroy_thread(se);
 }
 
-void Child::destroy_thread(SchedEntity *se) {
-    {
-        UtcbFrame puf;
-        puf << Sc::DESTROY;
-        puf.translate(se->cap());
-        CPU::current().sc_pt().call(puf);
-        puf.check_reply();
-    }
+void Child::destroy_sc(capsel_t cap) {
+    UtcbFrame uf;
+    uf << Sc::DESTROY;
+    uf.translate(cap);
+    CPU::current().sc_pt().call(uf);
+    uf.check_reply();
+}
 
+void Child::destroy_thread(SchedEntity *se) {
+    destroy_sc(se->cap());
     LOG(ADMISSION, "Child '" << cmdline() << "' destroyed sc " << se->ptr() << ":" << se->name() << "\n");
     _scs.remove(se);
     delete se;

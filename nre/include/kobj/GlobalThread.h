@@ -78,7 +78,11 @@ public:
      */
     static Reference<GlobalThread> create_for(Pd *pd, startup_func start, cpu_t cpu,
                                               const String &name, uintptr_t utcb) {
-        return Reference<GlobalThread>(new GlobalThread(start, cpu, name, pd, utcb));
+        GlobalThread *gt = new GlobalThread(start, cpu, name, pd, utcb);
+        // since the thread runs in another Pd, it won't destroy itself here. therefore, we have
+        // to decrease the references so that it is destroyed if the returned one is destroyed.
+        gt->rem_ref();
+        return Reference<GlobalThread>(gt);
     }
 
     virtual ~GlobalThread();
