@@ -128,6 +128,9 @@ OStream::FormatParams::FormatParams(const char *fmt, bool all, va_list *ap)
 }
 
 int OStream::vwritef(const char *fmt, va_list ap0) {
+    if(this == nullptr)
+        return 0;
+
     int count = 0;
     // depending on the implementation of va_list, we might not be able to get a pointer to a
     // va_list that has been passed in as a function parameter. as a workaround we use va_copy
@@ -249,6 +252,9 @@ int OStream::printsignedprefix(llong n, uint flags) {
 }
 
 int OStream::putspad(const char *s, uint pad, uint prec, uint flags) {
+    if(this == nullptr)
+        return 0;
+
     int count = 0;
     if(pad > 0 && !(flags & FormatParams::PADRIGHT)) {
         ulong width = prec != static_cast<uint>(-1) ? Math::min<size_t>(prec, strlen(s)) : strlen(s);
@@ -261,6 +267,9 @@ int OStream::putspad(const char *s, uint pad, uint prec, uint flags) {
 }
 
 int OStream::printnpad(llong n, uint pad, uint flags) {
+    if(this == nullptr)
+        return 0;
+
     int count = 0;
     // pad left
     if(!(flags & FormatParams::PADRIGHT) && pad > 0) {
@@ -278,6 +287,9 @@ int OStream::printnpad(llong n, uint pad, uint flags) {
 }
 
 int OStream::printupad(ullong u, uint base, uint pad, uint flags) {
+    if(this == nullptr)
+        return 0;
+
     int count = 0;
     // pad left - spaces
     if(!(flags & FormatParams::PADRIGHT) && !(flags & FormatParams::PADZEROS) && pad > 0) {
@@ -313,6 +325,9 @@ int OStream::printupad(ullong u, uint base, uint pad, uint flags) {
 }
 
 int OStream::printdblpad(double d, uint pad, uint precision, uint flags) {
+    if(this == nullptr)
+        return 0;
+
     int count = 0;
     llong pre = static_cast<llong>(d);
     // pad left
@@ -341,6 +356,9 @@ int OStream::printdblpad(double d, uint pad, uint precision, uint flags) {
 }
 
 int OStream::printpad(int count, uint flags) {
+    if(this == nullptr)
+        return 0;
+
     int res = count;
     char c = flags & FormatParams::PADZEROS ? '0' : ' ';
     while(count-- > 0)
@@ -349,6 +367,9 @@ int OStream::printpad(int count, uint flags) {
 }
 
 int OStream::printu(ullong n, uint base, char *chars) {
+    if(this == nullptr)
+        return 0;
+
     int res = 0;
     if(n >= base)
         res += printu(n / base, base, chars);
@@ -357,6 +378,9 @@ int OStream::printu(ullong n, uint base, char *chars) {
 }
 
 int OStream::printn(llong n) {
+    if(this == nullptr)
+        return 0;
+
     int res = 0;
     if(n < 0) {
         write('-');
@@ -371,6 +395,9 @@ int OStream::printn(llong n) {
 }
 
 int OStream::printdbl(double d, uint precision) {
+    if(this == nullptr)
+        return 0;
+
     uint prec = precision == static_cast<uint>(-1) ? 6 : precision;
     int c = 0;
     bool nan = Float<double>::is_nan(d);
@@ -401,6 +428,9 @@ int OStream::printdbl(double d, uint precision) {
 }
 
 int OStream::printptr(uintptr_t u, uint flags) {
+    if(this == nullptr)
+        return 0;
+
     int count = 0;
     size_t size = sizeof(uintptr_t);
     flags |= FormatParams::PADZEROS;
@@ -417,6 +447,9 @@ int OStream::printptr(uintptr_t u, uint flags) {
 }
 
 int OStream::puts(const char *str, ulong prec) {
+    if(this == nullptr)
+        return 0;
+
     const char *begin = str;
     char c;
     while((prec == static_cast<ulong>(-1) || prec-- > 0) && (c = *str)) {
