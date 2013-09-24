@@ -39,7 +39,7 @@ class MaskField {
     template<uint N>
     friend OStream & operator<<(OStream &os, const MaskField<N> &bf);
 
-    static const word_t MASK = (1 << BITS) - 1;
+    static const word_t MASK = (1UL << BITS) - 1;
 
     static size_t idx(uint i) {
         return (i * BITS) / (sizeof(word_t) * 8);
