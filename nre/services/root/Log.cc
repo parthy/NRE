@@ -21,6 +21,8 @@
 #include <kobj/Sc.h>
 #include <String.h>
 
+#include "VirtualMemory.h"
+#include "Hypervisor.h"
 #include "Log.h"
 
 using namespace nre;
@@ -36,7 +38,16 @@ BufferedLog::BufferedLog() : BaseSerial(), _bufpos(0), _buf() {
     BaseSerial::_inst = this;
 }
 
-Log::Log() : BaseSerial(), _ports(PORT_BASE, 6), _sm(1), _ready(true) {
+Ports::port_t Log::get_com1_base() {
+    uintptr_t virt = VirtualMemory::alloc(ExecEnv::PAGE_SIZE);
+    Hypervisor::map_mem(0x0, virt, ExecEnv::PAGE_SIZE);
+    Ports::port_t base = *reinterpret_cast<uint16_t*>(virt + BDA_COM_PORTS_OFF);
+    Hypervisor::unmap_mem(virt, ExecEnv::PAGE_SIZE);
+    VirtualMemory::free(virt, ExecEnv::PAGE_SIZE);
+    return base;
+}
+
+Log::Log() : BaseSerial(), _ports(get_com1_base(), 6), _sm(1), _ready(true) {
     _ports.out<uint8_t>(0x80, LCR);          // Enable DLAB (set baud rate divisor)
     _ports.out<uint8_t>(0x01, DLR_LO);       // Set divisor to 1 (lo byte) 115200 baud
     _ports.out<uint8_t>(0x00, DLR_HI);       //                  (hi byte)

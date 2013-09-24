@@ -80,12 +80,6 @@ class Log : public nre::BaseSerial {
     };
 
     enum {
-        COM1    = 0x3F8,
-        COM2    = 0x2E8,
-        COM3    = 0x2F8,
-        COM4    = 0x3E8
-    };
-    enum {
         DLR_LO  = 0,
         DLR_HI  = 1,
         IER     = 1,    // interrupt enable register
@@ -94,8 +88,10 @@ class Log : public nre::BaseSerial {
         MCR     = 4,    // modem control register
     };
 
-    static const uint PORT_BASE     = COM1;
-    static const uint ROOT_SESS     = 0;
+    static const uint ROOT_SESS             = 0;
+    static const size_t BDA_COM_PORTS_OFF   = 0x400;
+
+    static nre::Ports::port_t get_com1_base();
 
 public:
     /**
