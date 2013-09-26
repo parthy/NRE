@@ -71,7 +71,7 @@ PORTAL static void portal_pcicfg(void*) {
 
             case PCIConfig::ADDR: {
                 uf.finish_input();
-                uintptr_t res = mmcfg->addr(bdf, offset);
+                uintptr_t res = mmcfg ? mmcfg->addr(bdf, offset) : 0;
                 LOG(PCICFG, "MMConfig::ADDR " << bdf << " off=" << fmt(offset, "#x")
                                               << ": " << fmt(res, "p") << "\n");
                 uf << E_SUCCESS << res;

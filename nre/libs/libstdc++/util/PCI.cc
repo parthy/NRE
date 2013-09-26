@@ -27,6 +27,9 @@ Gsi *PCI::get_gsi_msi(BDF bdf, uint nr, void *msix_table) {
 
     // determine device address and ensure that the memory is mapped in
     uintptr_t phys_addr = _pcicfg.addr(bdf, 0);
+    if(!phys_addr)
+        return nullptr;
+
     DataSpace devds(ExecEnv::PAGE_SIZE, DataSpaceDesc::LOCKED, DataSpaceDesc::R, phys_addr);
 
     // create GSI
@@ -65,8 +68,12 @@ Gsi *PCI::get_gsi_msi(BDF bdf, uint nr, void *msix_table) {
 
 Gsi *PCI::get_gsi(BDF bdf, uint nr, bool /*level*/, void *msix_table) {
     // If the device is MSI or MSI-X capable, don't use legacy interrupts.
-    if(find_cap(bdf, CAP_MSIX) || find_cap(bdf, CAP_MSI))
-        return get_gsi_msi(bdf, nr, msix_table);
+    if(find_cap(bdf, CAP_MSIX) || find_cap(bdf, CAP_MSI)) {
+        Gsi *gsi = get_gsi_msi(bdf, nr, msix_table);
+        // fall back to legacy interrupts, if it failed
+        if(gsi)
+            return gsi;
+    }
 
     // we can't program vector > 0 when we only have legacy interrupts
     assert(nr == 0);
