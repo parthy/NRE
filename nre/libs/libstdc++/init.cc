@@ -64,8 +64,10 @@ void _init(int argc, char **argv) {
     __register_frame(&EH_FRAME_BEGIN);
 
     // call reverse constructors (for clang)
+#ifdef __i386__
     for(void (**func)() = &CTORS_REVERSE_BEGIN; func != &CTORS_REVERSE_END; func++)
         (*func)();
+#endif
     // call constructors
     for(void (**func)() = &CTORS_END; func != &CTORS_BEGIN; )
         (*--func)();
