@@ -166,11 +166,11 @@ int main() {
     LOG(MEM_MAP, "Virtual memory for mappings:\n");
     const RegionManager<> &vmregs = VirtualMemory::regions();
     for(auto it = vmregs.begin(); it != vmregs.end(); ++it)
-        LOG(MEM_MAP, "\t" << fmt(it->addr, "p") << " .. " << fmt(it->addr + it->size, "p")
+        LOG(MEM_MAP, "\t" << fmt(it->addr, "p") << " .. " << fmt(it->addr + it->size - 1, "p")
                           << " (" << Bytes(it->size) << ")\n");
     LOG(MEM_MAP, "Virtual memory for RAM:\n\t"
                  << fmt(VirtualMemory::ram_begin(), "p") << " .. "
-                 << fmt(VirtualMemory::ram_end(), "p")
+                 << fmt(VirtualMemory::ram_end() - 1, "p")
                  << " (" << Bytes(VirtualMemory::ram_end() - VirtualMemory::ram_begin()) << ")\n");
     LOG(MEM_MAP, "Physical memory:\n" << PhysicalMemory::regions());
 

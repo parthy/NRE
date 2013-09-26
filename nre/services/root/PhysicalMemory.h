@@ -69,7 +69,7 @@ class PhysicalMemory {
 
         friend nre::OStream &operator<<(nre::OStream &os, const MemRegManager &rm) {
             for(auto it = rm.begin(); it != rm.end(); ++it) {
-                os << "\t" << nre::fmt(it->addr, "p") << " .. " << nre::fmt(it->addr + it->size, "p")
+                os << "\t" << nre::fmt(it->addr, "p") << " .. " << nre::fmt(it->addr + it->size - 1, "p")
                    << " (" << nre::Bytes(it->size) << ")\n";
             }
             return os;
