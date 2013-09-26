@@ -119,13 +119,15 @@ static void adjust_memory_map() {
             uint64_t addr = it->addr;
             uint64_t size = it->size;
             if(addr & (ExecEnv::PAGE_SIZE - 1)) {
+                size -= ExecEnv::PAGE_SIZE - (addr & (ExecEnv::PAGE_SIZE - 1));
                 addr = Math::round_up<uint64_t>(addr, ExecEnv::PAGE_SIZE);
                 size -= ExecEnv::PAGE_SIZE - (addr & (ExecEnv::PAGE_SIZE - 1));
             }
-            chip->add_mem(addr, Math::round_dn<uint64_t>(size, ExecEnv::PAGE_SIZE),
-                          it->aux, it->type);
+            size = Math::round_dn<uint64_t>(size, ExecEnv::PAGE_SIZE);
+            if(size > 0)
+                chip->add_mem(addr, size, it->aux, it->type);
         }
-        else
+        else if(it->size > 0)
             chip->add_mem(it->addr, it->size, it->aux, it->type);
     }
     chip->finalize();
@@ -146,8 +148,13 @@ int main() {
                                 << (Hip::get().freq_bus / 1000) << " Mhz\n");
     // add all available memory
     for(auto it = hip.mem_begin(); it != hip.mem_end(); ++it) {
-        if(it->type == HipMem::AVAILABLE)
+        if(it->type == HipMem::AVAILABLE) {
+            // skip it if uintptr_t can't handle it
+            if(it->addr + it->size > static_cast<uintptr_t>(-1))
+                continue;
+
             PhysicalMemory::add(it->addr, it->size);
+        }
     }
 
     // remove all not available memory
