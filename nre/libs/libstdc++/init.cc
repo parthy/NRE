@@ -20,8 +20,7 @@
 
 #define MAX_EXIT_FUNCS      32
 
-typedef void (*fRegFrameInfo)(void *callback);
-typedef void (*fConstr)(void);
+typedef void (*constr_func)();
 
 struct GlobalObj {
     void (*f)(void*);
@@ -49,10 +48,10 @@ EXTERN_C void __register_frame(const void *begin);
 
 static size_t exitFuncCount = 0;
 static GlobalObj exitFuncs[MAX_EXIT_FUNCS];
-extern void (*CTORS_BEGIN)();
-extern void (*CTORS_END)();
-extern void (*CTORS_REVERSE_BEGIN)();
-extern void (*CTORS_REVERSE_END)();
+extern constr_func CTORS_BEGIN;
+extern constr_func CTORS_END;
+extern constr_func CTORS_REVERSE_BEGIN;
+extern constr_func CTORS_REVERSE_END;
 extern void *EH_FRAME_BEGIN;
 void *__dso_handle;
 
@@ -64,12 +63,14 @@ void _init(int argc, char **argv) {
     __register_frame(&EH_FRAME_BEGIN);
 
     // call reverse constructors (for clang)
-#ifdef __i386__
-    for(void (**func)() = &CTORS_REVERSE_BEGIN; func != &CTORS_REVERSE_END; func++)
+    // these constructor calls seem to be only necessary on x86_32 and, for some strange reason,
+    // on x86_64 when using a 64-bit host or so.
+    // note also that clang seems to be unable to generate the correct code when "!=" is used
+    // instead of "<". because in that case it simply ommits the check before entering the loop.
+    for(constr_func *func = &CTORS_REVERSE_BEGIN; func < &CTORS_REVERSE_END; ++func)
         (*func)();
-#endif
     // call constructors
-    for(void (**func)() = &CTORS_END; func != &CTORS_BEGIN; )
+    for(constr_func *func = &CTORS_END; func > &CTORS_BEGIN; )
         (*--func)();
 }
 
