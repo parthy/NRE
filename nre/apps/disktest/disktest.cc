@@ -23,6 +23,7 @@
 using namespace nre;
 
 #define CD_TEXT     "That is a test!!\nMore testing\n"
+#define CD_SECTORS  283
 
 static const Storage::sector_type cdsec     = 80;
 static const size_t offset                  = 0x200;
@@ -114,8 +115,14 @@ static void runtest(DataSpace &buffer, size_t d) {
 
         read_invalid_sector(disk, params, buffer);
 
-        if(params.flags & Storage::Parameter::FLAG_ATAPI)
+        if(params.flags & Storage::Parameter::FLAG_ATAPI) {
+            if(params.sectors != CD_SECTORS) {
+                Serial::get() << "Skipping read, because it doesn't have the expected "
+                              << CD_SECTORS << " sectors\n";
+                return;
+            }
             read_atapi(disk, params, buffer);
+        }
         else
             read_write_ata(disk, params, buffer);
 
@@ -124,22 +131,25 @@ static void runtest(DataSpace &buffer, size_t d) {
         wait_for(disk, tag++);
     }
     catch(const Exception &e) {
-        Serial::get() << "Operation with " << d << " failed: " << e.msg() << "\n";
+        if(e.code() != E_NOT_FOUND)
+            Serial::get() << "Operation with " << d << " failed: " << e.msg() << "\n";
     }
 }
 
-int main() {
-    ConsoleSession cons("console", 1, "DiskTest");
-    VGAStream s(cons, 0);
-    s.clear(0);
-    s << "Welcome to the disk test program!\n\n";
-    s << "WARNING: This test will write on every sector of all harddisks!!!\n";
-    s << "ARE YOU SURE YOU WANT TO DO THAT (enter '4711' for yes): ";
-    uint answer;
-    s >> answer;
-    if(answer != 4711) {
-        s << "Ok, bye!\n";
-        return 0;
+int main(int argc, char **argv) {
+    if(argc < 2 || strcmp(argv[1], "no-check") != 0) {
+        ConsoleSession cons("console", 1, "DiskTest");
+        VGAStream s(cons, 0);
+        s.clear(0);
+        s << "Welcome to the disk test program!\n\n";
+        s << "WARNING: This test will write on every sector of all harddisks!!!\n";
+        s << "ARE YOU SURE YOU WANT TO DO THAT (enter '4711' for yes): ";
+        uint answer;
+        s >> answer;
+        if(answer != 4711) {
+            s << "Ok, bye!\n";
+            return 0;
+        }
     }
 
     DataSpace buffer(0x1000, DataSpaceDesc::ANONYMOUS, DataSpaceDesc::RW);

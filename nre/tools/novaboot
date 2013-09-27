@@ -13,6 +13,7 @@ use FileHandle;
 use IPC::Open2;
 use POSIX qw(:errno_h);
 use Cwd;
+use File::Temp qw(tempfile);
 
 # always flush
 $| = 1;
@@ -545,13 +546,13 @@ foreach my $script (@scripts) {
 }
 
 if (defined $iso_image) {
-    open(my $fh, ">menu-iso.lst");
-    print $fh "timeout 5\n\n$menu_iso";
-    close($fh);
-    my $files = "boot/grub/menu.lst=menu-iso.lst " . join(" ", map("$_=$_", keys(%files_iso)));
+    my $menu_fh = new File::Temp(UNLINK => 1);
+    print $menu_fh "timeout 1\n\n$menu_iso;";
+    my $files = "boot/grub/menu.lst=$menu_fh " . join(" ", map("$_=$_", keys(%files_iso)));
     $iso_image ||= "$config_name.iso";
     system_verbose("$CFG::genisoimage -R -b stage2_eltorito -no-emul-boot -boot-load-size 4 -boot-info-table -hide-rr-moved -J -joliet-long -o $iso_image -graft-points bin/boot/grub/ $files");
     print("ISO image created: $CFG::builddir/$iso_image\n");
+    close($menu_fh);
 }
 
 ######################################################################

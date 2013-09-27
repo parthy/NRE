@@ -103,7 +103,7 @@ private:
         is >> drive;
         size_t ctrl = drive / Storage::MAX_DRIVES;
         if(!mng->exists(ctrl) || !mng->get(ctrl)->exists(drive)) {
-            VTHROW(Exception, E_ARGS_INVALID,
+            VTHROW(Exception, E_NOT_FOUND,
                    "Controller/drive (" << ctrl << "," << drive << ") does not exist");
         }
         return new StorageServiceSession(this, id, func, drive);
