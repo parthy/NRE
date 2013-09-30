@@ -152,7 +152,10 @@ submit_job() {
 
 test_config() {
     echo "Building..."
-    ./b >/dev/null 2>/dev/null || kill -INT $$
+    ./b >build/logs/build-$NRE_TARGET-$NRE_BUILD-$NRE_CC.txt 2>&1 || (
+        echo "Build failed. See build/logs/build-$NRE_TARGET-$NRE_BUILD-$NRE_CC.txt for a log."
+        kill -INT $$
+    )
 
     submit_job run_in_qemu unittests
     submit_job run_in_qemu test
