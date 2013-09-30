@@ -17,6 +17,7 @@
 #pragma once
 
 #include <arch/Types.h>
+#include <arch/Defines.h>
 
 /**
  * Whether the UtcbStack variant should be used (requires a NOVA change)
@@ -26,7 +27,6 @@
 namespace nre {
 
 class Utcb;
-class UtcbFrame;
 class UtcbFrameRef;
 class OStream;
 OStream &operator<<(OStream &os, const Utcb &utcb);

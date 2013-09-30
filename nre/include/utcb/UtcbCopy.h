@@ -23,8 +23,6 @@
 
 namespace nre {
 
-class UtcbFrameRef;
-class UtcbFrame;
 
 /**
  * The copying UTCB implementation. That is, it creates frames in the UTCB by copying the current

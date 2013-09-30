@@ -22,8 +22,6 @@
 
 namespace nre {
 
-class GlobalThread;
-
 /**
  * Represents a protection domain
  */

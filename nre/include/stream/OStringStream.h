@@ -18,7 +18,6 @@
 
 #include <stream/OStream.h>
 #include <cstdlib>
-#include <cstring>
 
 namespace nre {
 

@@ -14,7 +14,9 @@
  * General Public License version 2 for more details.
  */
 
+#include <arch/Defines.h>
 #include <stream/Serial.h>
+#include <Exception.h>
 
 #include "tests/Pingpong.h"
 #include "tests/UtcbTest.h"

@@ -20,8 +20,9 @@
 
 #include <stream/OStringStream.h>
 #include <stream/Serial.h>
-#include <utcb/UtcbFrame.h>
 #include <Errors.h>
+#include <Desc.h>
+#include <cstring>
 
 namespace nre {
 namespace test {

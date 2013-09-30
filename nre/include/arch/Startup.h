@@ -37,7 +37,6 @@
 
 namespace nre {
 
-class Utcb;
 class Hip;
 
 struct StartupInfo {

@@ -24,7 +24,6 @@
 namespace nre {
 
 class Pt;
-class CPUInit;
 
 /**
  * The CPU class is used to get the current CPU, iterate through all online CPUs and it holds

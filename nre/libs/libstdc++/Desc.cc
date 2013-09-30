@@ -33,6 +33,7 @@
  * General Public License version 2 for more details.
  */
 
+#include <arch/Defines.h>
 #include <stream/OStream.h>
 #include <Desc.h>
 

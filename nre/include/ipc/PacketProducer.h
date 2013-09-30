@@ -20,7 +20,6 @@
 #include <ipc/PacketConsumer.h>
 #include <ipc/Producer.h>
 #include <Assert.h>
-#include <cstdlib>
 
 namespace nre {
 

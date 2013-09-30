@@ -20,10 +20,6 @@
 
 namespace nre {
 
-template<class T>
-class DList;
-template<class T, class It>
-class DListIteratorBase;
 
 /**
  * A listitem for the doubly linked list. It is intended that you inherit from this class to add

@@ -21,7 +21,6 @@
 #include <kobj/UserSm.h>
 #include <collection/SList.h>
 #include <stream/OStringStream.h>
-#include <util/Atomic.h>
 #include <util/ScopedLock.h>
 #include <util/Sync.h>
 #include <Logging.h>

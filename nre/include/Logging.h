@@ -16,7 +16,6 @@
 
 #pragma once
 
-#include <arch/Types.h>
 #include <kobj/UserSm.h>
 #include <stream/Serial.h>
 #include <util/ScopedLock.h>

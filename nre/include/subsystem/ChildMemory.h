@@ -20,12 +20,11 @@
 #include <arch/ExecEnv.h>
 #include <kobj/ObjCap.h>
 #include <mem/DataSpaceDesc.h>
-#include <stream/OStringStream.h>
 #include <collection/SortedSList.h>
+#include <stream/OStringStream.h>
 #include <bits/MaskField.h>
 #include <util/Math.h>
 #include <Exception.h>
-#include <Assert.h>
 
 namespace nre {
 

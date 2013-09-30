@@ -19,6 +19,7 @@
 #include <stream/OStream.h>
 #include <utcb/UtcbFrame.h>
 #include <kobj/Sc.h>
+#include <kobj/Gsi.h>
 #include <CPU.h>
 
 namespace nre {

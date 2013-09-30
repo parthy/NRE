@@ -25,11 +25,9 @@
 #include <Exception.h>
 #include <String.h>
 #include <Assert.h>
-#include <cstring>
 
 namespace nre {
 
-class Pt;
 class UtcbFrameRef;
 class UtcbExcFrameRef;
 OStream &operator<<(OStream &os, const Utcb &utcb);

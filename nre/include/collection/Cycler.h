@@ -17,7 +17,6 @@
 #pragma once
 
 #include <util/LockPolicy.h>
-#include <Assert.h>
 
 namespace nre {
 

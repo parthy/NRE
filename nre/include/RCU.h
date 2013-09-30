@@ -112,7 +112,6 @@
 
 namespace nre {
 
-class RCU;
 
 /**
  * A class to mark RCU read sections. Usage:

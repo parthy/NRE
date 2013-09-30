@@ -16,7 +16,6 @@
 
 #pragma once
 
-#include <arch/ExecEnv.h>
 #include <kobj/Thread.h>
 #include <kobj/Pd.h>
 #include <Compiler.h>

@@ -17,14 +17,11 @@
 #pragma once
 
 #include <kobj/Pt.h>
-#include <kobj/LocalThread.h>
-#include <ipc/Service.h>
 #include <collection/SListTreap.h>
 #include <subsystem/ServiceRegistry.h>
-#include <subsystem/ChildConfig.h>
 #include <subsystem/Child.h>
+#include <subsystem/ChildConfig.h>
 #include <mem/DataSpaceManager.h>
-#include <util/Sync.h>
 #include <Exception.h>
 
 namespace nre {
@@ -56,7 +53,6 @@ public:
  * to load child tasks and get information about the running ones.
  */
 class ChildManager {
-    class Portals;
     friend class Portals;
     friend class Child;
 

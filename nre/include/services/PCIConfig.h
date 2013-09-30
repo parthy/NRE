@@ -20,8 +20,6 @@
 #include <ipc/PtClientSession.h>
 #include <utcb/UtcbFrame.h>
 #include <util/BDF.h>
-#include <Exception.h>
-#include <CPU.h>
 
 namespace nre {
 

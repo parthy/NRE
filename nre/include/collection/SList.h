@@ -17,14 +17,9 @@
 #pragma once
 
 #include <arch/Types.h>
-#include <Assert.h>
 
 namespace nre {
 
-template<class T>
-class SList;
-template<class T, class It>
-class SListIteratorBase;
 
 /**
  * A listitem for the singly linked list. It is intended that you inherit from this class to add

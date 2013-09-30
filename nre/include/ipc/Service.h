@@ -17,21 +17,16 @@
 #pragma once
 
 #include <kobj/LocalThread.h>
-#include <kobj/GlobalThread.h>
 #include <kobj/Pt.h>
 #include <kobj/Sm.h>
 #include <kobj/UserSm.h>
 #include <ipc/ServiceCPUHandler.h>
 #include <ipc/ServiceSession.h>
-#include <mem/DataSpace.h>
 #include <utcb/UtcbFrame.h>
 #include <util/ThreadedDeleter.h>
-#include <util/ScopedPtr.h>
 #include <util/CPUSet.h>
-#include <util/Math.h>
 #include <bits/BitField.h>
 #include <Exception.h>
-#include <RCU.h>
 #include <CPU.h>
 
 namespace nre {

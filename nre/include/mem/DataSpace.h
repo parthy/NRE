@@ -19,7 +19,6 @@
 #include <arch/Types.h>
 #include <kobj/ObjCap.h>
 #include <mem/DataSpaceDesc.h>
-#include <cap/CapRange.h>
 #include <Exception.h>
 #include <Desc.h>
 
@@ -33,10 +32,6 @@ public:
 };
 
 class OStream;
-class ClientSession;
-class UtcbFrameRef;
-template<class DS>
-class DataSpaceManager;
 
 /**
  * A dataspace object represents a piece of memory, that is automatically created at construction

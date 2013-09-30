@@ -19,7 +19,6 @@
 #include <utcb/UtcbFrame.h>
 #include <util/ScopedCapSels.h>
 #include <kobj/Pt.h>
-#include <util/Util.h>
 #include <CPU.h>
 
 namespace nre {

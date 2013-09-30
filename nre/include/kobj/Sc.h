@@ -19,8 +19,6 @@
 #include <kobj/ObjCap.h>
 #include <kobj/GlobalThread.h>
 #include <kobj/VCpu.h>
-#include <kobj/Pd.h>
-#include <String.h>
 
 namespace nre {
 

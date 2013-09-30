@@ -21,9 +21,7 @@
 
 namespace nre {
 
-class Utcb;
 class UtcbFrameRef;
-class UtcbFrame;
 class OStream;
 
 OStream &operator<<(OStream &os, const UtcbFrameRef &frm);

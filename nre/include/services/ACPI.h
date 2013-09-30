@@ -18,11 +18,9 @@
 
 #include <arch/Types.h>
 #include <ipc/PtClientSession.h>
-#include <services/PCIConfig.h>
 #include <mem/DataSpace.h>
 #include <utcb/UtcbFrame.h>
-#include <Exception.h>
-#include <CPU.h>
+#include <util/BDF.h>
 
 namespace nre {
 

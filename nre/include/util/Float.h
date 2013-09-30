@@ -16,7 +16,6 @@
 
 #pragma once
 
-#include <arch/Types.h>
 
 namespace nre {
 

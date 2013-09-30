@@ -22,7 +22,6 @@
 
 namespace nre {
 
-class Pd;
 
 /**
  * Represents an execution context. This class can't be instantiated directly. To create an Ec, use

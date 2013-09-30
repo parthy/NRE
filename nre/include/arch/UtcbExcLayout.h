@@ -16,8 +16,6 @@
 
 #pragma once
 
-#include <arch/Types.h>
-#include <arch/ExecEnv.h>
 #include <utcb/UtcbHead.h>
 #include <cstring>
 

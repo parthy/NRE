@@ -17,7 +17,6 @@
 #pragma once
 
 #include <arch/Types.h>
-#include <arch/Defines.h>
 
 namespace nre {
 

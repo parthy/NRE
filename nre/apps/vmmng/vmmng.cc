@@ -17,6 +17,7 @@
 #include <subsystem/ChildManager.h>
 #include <services/Console.h>
 #include <services/Timer.h>
+#include <services/Keyboard.h>
 #include <stream/Serial.h>
 #include <stream/VGAStream.h>
 #include <collection/Cycler.h>

@@ -18,10 +18,8 @@
 #pragma once
 
 #include <kobj/Gsi.h>
-#include <mem/DataSpace.h>
-#include <services/ACPI.h>
 #include <services/PCIConfig.h>
-#include <Assert.h>
+#include <services/ACPI.h>
 
 namespace nre {
 

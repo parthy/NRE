@@ -21,7 +21,6 @@
 
 namespace nre {
 
-class PacketProducer;
 
 /**
  * Consumer-part for the packet-based producer-consumer-communication over a dataspace. Packet-based

@@ -16,8 +16,6 @@
 
 #pragma once
 
-#include <arch/Types.h>
-#include <arch/Defines.h>
 #include <util/Atomic.h>
 #include <util/Util.h>
 

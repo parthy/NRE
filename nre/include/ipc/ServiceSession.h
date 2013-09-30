@@ -19,7 +19,6 @@
 #include <kobj/Pt.h>
 #include <collection/SListTreap.h>
 #include <util/Reference.h>
-#include <util/ThreadedDeleter.h>
 #include <CPU.h>
 
 namespace nre {

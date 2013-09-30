@@ -17,10 +17,8 @@
 #pragma once
 
 #include <arch/ExecEnv.h>
-#include <arch/Startup.h>
 #include <kobj/Thread.h>
 #include <kobj/Pd.h>
-#include <util/Atomic.h>
 #include <Hip.h>
 
 /**
@@ -30,7 +28,6 @@ EXTERN_C void ec_landing_spot(void);
 
 namespace nre {
 
-class Utcb;
 class Sc;
 
 /**

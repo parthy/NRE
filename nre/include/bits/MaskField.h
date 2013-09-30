@@ -17,7 +17,6 @@
 #pragma once
 
 #include <arch/Types.h>
-#include <arch/Defines.h>
 #include <stream/OStream.h>
 #include <util/Math.h>
 #include <cstring>

@@ -20,8 +20,6 @@
 #include <kobj/GlobalThread.h>
 #include <kobj/Pt.h>
 #include <kobj/UserSm.h>
-#include <kobj/Gsi.h>
-#include <kobj/Ports.h>
 #include <ipc/ClientSession.h>
 #include <subsystem/ChildMemory.h>
 #include <subsystem/ServiceRegistry.h>

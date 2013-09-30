@@ -16,10 +16,9 @@
 
 #pragma once
 
+#include <services/Console.h>
 #include <stream/OStream.h>
 #include <stream/IStream.h>
-#include <ipc/ClientSession.h>
-#include <services/Console.h>
 #include <cstring>
 
 namespace nre {

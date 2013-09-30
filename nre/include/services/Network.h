@@ -22,9 +22,6 @@
 #include <ipc/PacketConsumer.h>
 #include <ipc/PacketProducer.h>
 #include <utcb/UtcbFrame.h>
-#include <util/DMA.h>
-#include <Exception.h>
-#include <CPU.h>
 
 namespace nre {
 

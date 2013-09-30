@@ -19,7 +19,6 @@
 #include <kobj/LocalThread.h>
 #include <kobj/Pt.h>
 #include <kobj/UserSm.h>
-#include <CPU.h>
 
 namespace nre {
 

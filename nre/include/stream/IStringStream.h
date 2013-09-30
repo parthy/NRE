@@ -18,7 +18,6 @@
 
 #include <stream/IStream.h>
 #include <String.h>
-#include <cstring>
 
 namespace nre {
 

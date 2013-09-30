@@ -16,11 +16,8 @@
 
 #pragma once
 
-#include <arch/Types.h>
 #include <ipc/PtClientSession.h>
 #include <utcb/UtcbFrame.h>
-#include <Exception.h>
-#include <CPU.h>
 
 namespace nre {
 

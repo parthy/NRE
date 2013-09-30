@@ -15,6 +15,7 @@
  */
 
 #include <stream/VGAStream.h>
+#include <services/Keyboard.h>
 
 using namespace nre;
 

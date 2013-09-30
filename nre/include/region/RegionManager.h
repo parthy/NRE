@@ -21,7 +21,6 @@
 #include <stream/OStringStream.h>
 #include <collection/DList.h>
 #include <util/Math.h>
-#include <util/Bytes.h>
 #include <Exception.h>
 
 namespace nre {
@@ -38,7 +37,6 @@ struct Region : public DListItem {
     size_t size;
 };
 
-class PortManager;
 
 /**
  * This class provides routines to manage a resource in a region-based fashion. For example, you

@@ -16,7 +16,6 @@
 
 #pragma once
 
-#include <arch/Types.h>
 #include <arch/SpinLock.h>
 
 typedef uint32_t pthread_key_t;

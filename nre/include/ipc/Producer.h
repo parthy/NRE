@@ -20,7 +20,6 @@
 #include <ipc/Consumer.h>
 #include <util/Sync.h>
 #include <util/Math.h>
-#include <cstdlib>
 
 namespace nre {
 

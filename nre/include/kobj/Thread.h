@@ -21,13 +21,12 @@
 #include <collection/SList.h>
 #include <util/Reference.h>
 #include <util/Atomic.h>
+#include <Assert.h>
 #include <Syscalls.h>
 
 namespace nre {
 
 class Pd;
-class RCU;
-class RCULock;
 class Utcb;
 
 /**

@@ -16,12 +16,9 @@
 
 #pragma once
 
-#include <arch/Types.h>
 
 namespace nre {
 
-template<class T>
-class Treap;
 
 /**
  * A node in the treap. You may create a subclass of this to add data to your nodes.

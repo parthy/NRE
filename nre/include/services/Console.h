@@ -17,10 +17,10 @@
 #pragma once
 
 #include <arch/Types.h>
-#include <kobj/Pt.h>
 #include <ipc/ClientSession.h>
-#include <services/Keyboard.h>
-#include <Hip.h>
+#include <ipc/Consumer.h>
+#include <mem/DataSpace.h>
+#include <util/ScopedPtr.h>
 
 namespace nre {
 

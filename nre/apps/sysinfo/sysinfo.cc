@@ -20,6 +20,7 @@
 #include <services/Console.h>
 #include <services/Timer.h>
 #include <services/SysInfo.h>
+#include <services/Keyboard.h>
 #include <util/Clock.h>
 
 #include "SysInfoPage.h"

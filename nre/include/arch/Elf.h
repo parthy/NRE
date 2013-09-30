@@ -16,8 +16,6 @@
 
 #pragma once
 
-#include <arch/Types.h>
-
 #ifdef __i386__
 #    include <arch/x86_32/Elf.h>
 #elif defined __x86_64__

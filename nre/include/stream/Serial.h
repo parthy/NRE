@@ -17,8 +17,6 @@
 #pragma once
 
 #include <stream/OStream.h>
-#include <arch/ExecEnv.h>
-#include <Assert.h>
 
 class Log;
 
