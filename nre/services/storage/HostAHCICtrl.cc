@@ -15,8 +15,6 @@
  * General Public License version 2 for more details.
  */
 
-#include <services/PCIConfig.h>
-#include <services/ACPI.h>
 #include <Logging.h>
 
 #include "HostAHCICtrl.h"

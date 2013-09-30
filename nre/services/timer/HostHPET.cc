@@ -17,12 +17,9 @@
  */
 
 #include <services/ACPI.h>
-#include <services/PCIConfig.h>
-#include <stream/Serial.h>
 #include <util/DmarTableParser.h>
 #include <util/Math.h>
 #include <Logging.h>
-#include <Hip.h>
 
 #include "HostHPET.h"
 

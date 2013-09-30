@@ -30,7 +30,6 @@
 #include <Logging.h>
 #include <cstring>
 #include <new>
-#include <Assert.h>
 
 #include "PhysicalMemory.h"
 #include "VirtualMemory.h"

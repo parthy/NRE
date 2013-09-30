@@ -17,12 +17,8 @@
 #include <arch/Startup.h>
 #include <kobj/GlobalThread.h>
 #include <kobj/Pd.h>
-#include <kobj/Pt.h>
-#include <kobj/Sm.h>
-#include <utcb/UtcbFrame.h>
 #include <stream/Serial.h>
 #include <Exception.h>
-#include <CPU.h>
 #include <pthread.h>
 
 using namespace nre;

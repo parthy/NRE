@@ -16,7 +16,6 @@
 
 #include <subsystem/ChildManager.h>
 #include <subsystem/ChildHip.h>
-#include <stream/Serial.h>
 #include <ipc/Service.h>
 #include <kobj/Gsi.h>
 #include <kobj/Sc.h>

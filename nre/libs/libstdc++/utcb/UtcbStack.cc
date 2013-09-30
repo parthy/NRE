@@ -15,7 +15,6 @@
  */
 
 #include <utcb/UtcbStack.h>
-#include <utcb/UtcbFrame.h>
 
 #if USE_UTCB_STACKING
 

@@ -16,7 +16,6 @@
  * General Public License version 2 for more details.
  */
 
-#include <kobj/Sc.h>
 #include <stream/Serial.h>
 #include <util/Date.h>
 #include <util/Topology.h>

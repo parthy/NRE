@@ -16,7 +16,6 @@
 
 #include <kobj/Sc.h>
 #include <kobj/Pt.h>
-#include <kobj/UserSm.h>
 #include <utcb/UtcbFrame.h>
 #include <util/ScopedCapSels.h>
 

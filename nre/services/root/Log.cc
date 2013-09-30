@@ -15,10 +15,7 @@
  */
 
 #include <ipc/Service.h>
-#include <ipc/Consumer.h>
 #include <stream/Serial.h>
-#include <kobj/GlobalThread.h>
-#include <kobj/Sc.h>
 #include <String.h>
 
 #include "VirtualMemory.h"

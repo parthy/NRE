@@ -17,11 +17,9 @@
 #include <arch/ExecEnv.h>
 #include <arch/Startup.h>
 #include <kobj/Pd.h>
-#include <kobj/Thread.h>
 #include <kobj/Pt.h>
 #include <utcb/UtcbFrame.h>
 #include <util/ScopedCapSels.h>
-#include <CPU.h>
 
 namespace nre {
 

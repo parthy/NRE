@@ -16,8 +16,6 @@
 
 #include <arch/Startup.h>
 #include <stream/Serial.h>
-#include <mem/DataSpace.h>
-#include <kobj/Ports.h>
 #include <services/Log.h>
 
 namespace nre {

@@ -14,10 +14,8 @@
  * General Public License version 2 for more details.
  */
 
-#include <kobj/Pt.h>
 #include <utcb/UtcbFrame.h>
 #include <util/Profiler.h>
-#include <CPU.h>
 
 #include "CatchEx.h"
 

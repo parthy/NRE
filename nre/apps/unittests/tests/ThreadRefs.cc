@@ -17,7 +17,6 @@
 #include <kobj/GlobalThread.h>
 #include <kobj/Sm.h>
 #include <Test.h>
-#include <Logging.h>
 #include <CPU.h>
 #include <cstdlib>
 

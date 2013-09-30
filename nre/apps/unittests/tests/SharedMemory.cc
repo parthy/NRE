@@ -15,7 +15,6 @@
  */
 
 #include <kobj/Pt.h>
-#include <kobj/Sc.h>
 #include <subsystem/ChildManager.h>
 #include <ipc/Service.h>
 #include <ipc/Consumer.h>

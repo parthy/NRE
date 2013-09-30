@@ -15,7 +15,6 @@
  */
 
 #include <util/Math.h>
-#include <stream/Serial.h>
 
 #include "VESAScreen.h"
 #include "VESAFont.h"

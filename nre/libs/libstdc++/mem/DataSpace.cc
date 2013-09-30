@@ -15,14 +15,9 @@
  */
 
 #include <mem/DataSpace.h>
-#include <kobj/Pd.h>
 #include <kobj/Pt.h>
 #include <utcb/UtcbFrame.h>
-#include <ipc/ClientSession.h>
-#include <ipc/Service.h>
-#include <stream/Serial.h>
 #include <util/ScopedCapSels.h>
-#include <Syscalls.h>
 #include <CPU.h>
 
 namespace nre {

@@ -18,7 +18,6 @@
 #include <kobj/Gsi.h>
 #include <kobj/Ports.h>
 #include <utcb/UtcbFrame.h>
-#include <util/ScopedLock.h>
 #include <Logging.h>
 
 #include "Hypervisor.h"

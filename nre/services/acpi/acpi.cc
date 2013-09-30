@@ -16,7 +16,6 @@
 
 #include <ipc/Service.h>
 #include <services/ACPI.h>
-#include <services/PCIConfig.h>
 #include <Logging.h>
 
 #include "HostACPI.h"

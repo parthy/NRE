@@ -19,7 +19,6 @@
 #include <cap/CapSelSpace.h>
 #include <mem/DataSpace.h>
 #include <kobj/Pd.h>
-#include <stream/Serial.h>
 #include <cstring>
 #include <Syscalls.h>
 #include <util/Atomic.h>

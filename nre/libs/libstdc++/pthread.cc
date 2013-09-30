@@ -17,7 +17,6 @@
 #include <arch/SpinLock.h>
 #include <kobj/Thread.h>
 #include <pthread.h>
-#include <cstdlib>
 #include <util/Atomic.h>
 
 using namespace nre;

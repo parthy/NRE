@@ -15,7 +15,6 @@
  */
 
 #include <ipc/Service.h>
-#include <Logging.h>
 
 namespace nre {
 

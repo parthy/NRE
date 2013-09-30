@@ -14,9 +14,6 @@
  * General Public License version 2 for more details.
  */
 
-#include <kobj/Sc.h>
-#include <ipc/Service.h>
-#include <stream/VGAStream.h>
 #include <services/Console.h>
 #include <services/Timer.h>
 #include <services/SysInfo.h>

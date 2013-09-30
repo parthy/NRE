@@ -16,9 +16,7 @@
  */
 
 #include <mem/DataSpace.h>
-#include <stream/Serial.h>
 #include <Logging.h>
-#include <String.h>
 #include <cstring>
 
 #include "HostACPI.h"

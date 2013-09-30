@@ -14,7 +14,6 @@
  * General Public License version 2 for more details.
  */
 
-#include <arch/Defines.h>
 #include <subsystem/ChildMemory.h>
 #include <stream/OStream.h>
 

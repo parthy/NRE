@@ -16,11 +16,7 @@
 
 #include <ipc/ServiceCPUHandler.h>
 #include <ipc/Service.h>
-#include <ipc/ClientSession.h>
 #include <utcb/UtcbFrame.h>
-#include <stream/Serial.h>
-#include <util/ScopedLock.h>
-#include <util/ScopedPtr.h>
 #include <Logging.h>
 
 namespace nre {

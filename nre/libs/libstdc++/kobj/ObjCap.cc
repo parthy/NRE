@@ -15,7 +15,6 @@
  */
 
 #include <kobj/ObjCap.h>
-#include <kobj/Pd.h>
 #include <cap/CapSelSpace.h>
 #include <Syscalls.h>
 

@@ -14,7 +14,6 @@
  * General Public License version 2 for more details.
  */
 
-#include <kobj/Gsi.h>
 #include <Logging.h>
 
 #include "ControllerMng.h"

@@ -16,10 +16,8 @@
 
 #include <kobj/Sc.h>
 #include <kobj/Thread.h>
-#include <kobj/LocalThread.h>
 #include <kobj/Pt.h>
 #include <utcb/UtcbFrame.h>
-#include <Compiler.h>
 #include <CPU.h>
 #include <RCU.h>
 

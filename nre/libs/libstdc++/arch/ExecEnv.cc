@@ -15,10 +15,8 @@
  */
 
 #include <arch/ExecEnv.h>
-#include <kobj/UserSm.h>
 #include <kobj/Thread.h>
 #include <kobj/GlobalThread.h>
-#include <util/ScopedLock.h>
 #include <util/Math.h>
 #include <cap/CapRange.h>
 #include <Compiler.h>

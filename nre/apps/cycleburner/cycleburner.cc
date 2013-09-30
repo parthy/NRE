@@ -19,7 +19,6 @@
  */
 
 #include <arch/Types.h>
-#include <stream/Serial.h>
 #include <stream/VGAStream.h>
 #include <services/Console.h>
 #include <services/Timer.h>

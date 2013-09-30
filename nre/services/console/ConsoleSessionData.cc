@@ -14,7 +14,6 @@
  * General Public License version 2 for more details.
  */
 
-#include <cstring>
 
 #include "ConsoleSessionData.h"
 

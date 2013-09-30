@@ -14,7 +14,6 @@
  * General Public License version 2 for more details.
  */
 
-#include <kobj/Pt.h>
 #include <kobj/Sm.h>
 #include <subsystem/ChildManager.h>
 #include <mem/DataSpace.h>

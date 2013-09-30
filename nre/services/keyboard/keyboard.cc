@@ -18,7 +18,6 @@
 #include <ipc/Producer.h>
 #include <kobj/GlobalThread.h>
 #include <kobj/Gsi.h>
-#include <kobj/Sc.h>
 #include <services/ACPI.h>
 
 #include "HostKeyboard.h"

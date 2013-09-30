@@ -16,7 +16,6 @@
  */
 
 #include <util/Math.h>
-#include <stream/Serial.h>
 
 #include "VGAScreen.h"
 

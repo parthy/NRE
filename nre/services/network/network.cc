@@ -16,7 +16,6 @@
 
 #include "driver/NE2K.h"
 #include "NetworkService.h"
-#include "NICDriver.h"
 #include "NICList.h"
 
 using namespace nre;
