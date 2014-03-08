@@ -1,4 +1,5 @@
 /*
+ * Copyright (C) 2014, Markus Partheymueller <mpartheym@os.inf.tu-dresden.de>
  * Copyright (C) 2012, Nils Asmussen <nils@os.inf.tu-dresden.de>
  * Economic rights: Technische Universitaet Dresden (Germany)
  *
@@ -243,6 +244,18 @@ public:
             *msi_address = out1;
         if(msi_value)
             *msi_value = out2;
+    }
+
+    /**
+     * Assigns the PCI device to the given PD.
+     *
+     * @param pd the PD that will own the device
+     * @param pc_cfg_mem the virtual address to the config space
+     * @param rid the routing ID for SR-IOV devices
+     * @throws SyscallException if the system-call failed (result != E_SUCCESS)
+     */
+    static void assign_pci(capsel_t pd, uintptr_t pci_cfg_mem, word_t rid) {
+        SyscallABI::syscall(pd << 8 | ASSIGN_PCI, pci_cfg_mem, rid, 0, 0);
     }
 
     /**
