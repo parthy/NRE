@@ -1,4 +1,5 @@
 /*
+ * Copyright (C) 2014, Markus Partheymueller <mpartheym@os.inf.tu-dresden.de>
  * Copyright (C) 2012, Nils Asmussen <nils@os.inf.tu-dresden.de>
  * Economic rights: Technische Universitaet Dresden (Germany)
  *
@@ -655,6 +656,7 @@ void ChildManager::map(UtcbFrameRef &uf, Child *c, DataSpace::RequestType type) 
 
         // add it to the regions of the child
         uint flags = ds.flags();
+        bool dma = false;
         try {
             // only create creations and non-device-memory
             if(type != DataSpace::JOIN && desc.phys() == 0)
@@ -668,6 +670,10 @@ void ChildManager::map(UtcbFrameRef &uf, Child *c, DataSpace::RequestType type) 
             }
             size_t align = 1 << (ds.desc().align() + ExecEnv::PAGE_SHIFT);
             addr = c->reglist().find_free(ds.size(), align);
+            // Respect DMA memory type
+            if (desc.type() == DataSpaceDesc::DMA || ds.desc().type() == DataSpaceDesc::DMA) {
+                dma = true;
+            }
             c->reglist().add(ds.desc(), addr, flags, ds.unmapsel());
         }
         catch(...) {
@@ -683,7 +689,10 @@ void ChildManager::map(UtcbFrameRef &uf, Child *c, DataSpace::RequestType type) 
                                       << "[sel=" << fmt(ds.sel(), "#x")
                                       << ", umsel=" << fmt(ds.unmapsel(), "#x") << "] "
                                       << childdesc << "\n");
-            uf.delegate(ds.sel(), 0);
+            // Respect DMA memory type
+            UtcbFrameRef::DelFlags flags = (dma) ? UtcbFrameRef::DelFlags::UPD_DPT
+                                                 : UtcbFrameRef::DelFlags::NONE;
+            uf.delegate(ds.sel(), 0, flags);
             uf.delegate(ds.unmapsel(), 1);
         }
         else {
@@ -906,7 +915,11 @@ void ChildManager::Portals::ex_pf(Child *c) {
             // ensure that it fits into the utcb
             cr.limit_to(uf.free_typed());
             cr.count(ds->page_perms(pfpage, cr.count(), perms));
-            uf.delegate(cr);
+            // Respect DMA memory type
+            UtcbFrame::DelFlags flags = (ds->desc().type() == DataSpaceDesc::DMA) ?
+                                        UtcbFrame::DelFlags::UPD_DPT :
+                                        UtcbFrame::DelFlags::NONE;
+            uf.delegate(cr, flags);
 
             // ensure that we have the memory (if we're a subsystem this might not be true)
             // TODO this is not sufficient, in general

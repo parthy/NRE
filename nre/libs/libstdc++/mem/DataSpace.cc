@@ -1,4 +1,5 @@
 /*
+ * Copyright (C) 2014, Markus Partheymueller <mpartheym@os.inf.tu-dresden.de>
  * Copyright (C) 2012, Nils Asmussen <nils@os.inf.tu-dresden.de>
  * Economic rights: Technische Universitaet Dresden (Germany)
  *
@@ -42,8 +43,8 @@ void DataSpace::create(DataSpaceDesc &desc, capsel_t *sel, capsel_t *unmapsel) {
 void DataSpace::create() {
     assert(_sel == ObjCap::INVALID && _unmapsel == ObjCap::INVALID);
     create(_desc, &_sel, &_unmapsel);
-    // if its locked memory, make sure that it is mapped for us
-    if(_desc.type() == DataSpaceDesc::LOCKED)
+    // if its locked or DMA memory, make sure that it is mapped for us
+    if(_desc.type() == DataSpaceDesc::LOCKED || _desc.type() == DataSpaceDesc::DMA)
         touch();
 }
 
@@ -73,7 +74,7 @@ void DataSpace::join() {
     uf.check_reply();
     uf >> _desc;
     _unmapsel = umcap.release();
-    if(_desc.type() == DataSpaceDesc::LOCKED)
+    if(_desc.type() == DataSpaceDesc::LOCKED || _desc.type() == DataSpaceDesc::DMA)
         touch();
 }
 

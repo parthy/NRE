@@ -1,4 +1,5 @@
 /*
+ * Copyright (C) 2014, Markus Partheymueller <mpartheym@os.inf.tu-dresden.de>
  * Copyright (C) 2012, Nils Asmussen <nils@os.inf.tu-dresden.de>
  * Economic rights: Technische Universitaet Dresden (Germany)
  *
@@ -30,6 +31,8 @@ public:
     enum Type {
         // the mapping is not backed by any file
         ANONYMOUS,
+        // the mapping needs to be DMAable
+        DMA,
         // the mapping is not backed by memory at all. i.e. it's just a piece of virtual memory
         // that has been reserved.
         VIRTUAL,
