@@ -1,0 +1,16 @@
+#!tools/novaboot
+# -*-sh-*-
+QEMU_FLAGS=-m 1024 -smp 4 -hda dist/imgs/hd3.img
+HYPERVISOR_PARAMS=spinner serial iommu
+bin/apps/root
+bin/apps/acpi provides=acpi
+bin/apps/keyboard provides=keyboard
+bin/apps/reboot provides=reboot
+bin/apps/pcicfg provides=pcicfg
+bin/apps/timer provides=timer
+bin/apps/console provides=console
+bin/apps/sysinfo
+bin/apps/vancouver mods=following lastmod m:512 ncpu:1 PC_PS2 dpci:2,0,0
+bin/apps/guest_munich
+dist/imgs/bzImage-3.1.0-32 clocksource=tsc console=tty0
+dist/imgs/initrd-js.lzma
